@@ -52,6 +52,41 @@ class Blockchain:
 
         self.chain.append(new_block)
 
+    def find_batch(self , batch_id):
+
+        result = []
+
+        for block in self.chain:
+
+            if( batch_id == block.data.get("batch_id")):
+                result.append(block.data)
+
+        return result
+
+    def register_batch(self , batch_id , beekeper , location , quantity ):
+
+        data = {
+            "batch_id" : batch_id,
+            "stage"    : "harvested",
+            "beekeper" : beekeper,
+            "location" : location,
+            "qunatity" : quantity
+        }
+
+        self.add_block(data)
+
+    def update_batch(self , batch_id , stage , location = None):
+
+        data={
+            "batch_id" : batch_id,
+            "stage"    : stage
+            }
+
+        if location :
+            data[location] = location
+
+        self.add_block(data) 
+                
     def is_valid(self):
 
         for i in range( 1, len(self.chain)):
@@ -71,48 +106,25 @@ class Blockchain:
     # Create blockchain
 honey_chain = Blockchain()
 
-# Add honey records
-honey_chain.add_block({
-    "batch_id": "HC001",
-    "stage": "Harvested",
-    "location": "Uttarakhand",
-    "quantity": "50 kg"
-})
+honey_chain.register_batch(
+    "HC001" , "ABC Farm" , "uttarakhand" , "50 kg"
+)
 
-honey_chain.add_block({
-    "batch_id": "HC001",
-    "stage": "Processed",
-    "location": "Processing Unit"
-})
+honey_chain.update_batch(
+    "HC001" , "Proccesed" , "Processing unit"
+)
 
-honey_chain.add_block({
-    "batch_id": "HC001",
-    "stage": "Bottled",
-    "quantity": "500 bottles"
-})
+honey_chain.update_batch(
+    "HC001" , "Botteled" , "Botteling unit"
+)
 
-# Display blockchain
-for block in honey_chain.chain:
+honey_chain.update_batch(
+    "HC001" , "Distributed" , "Dehradun"
+)
 
-    print("\n-----------------------")
-    print("Block:", block.index)
-    print("Data:", block.data)
-    print("Previous Hash:", block.prevhash)
-    print("Hash:", block.hash)
+history = honey_chain.find_batch("HC001")
 
+print("\n-----------BATCH HISTORY-----------")
 
-print("\nBlockchain valid:", honey_chain.is_valid())
-
-honey_chain.chain[1].data = {
-    "batch_id": "HC001",
-    "stage": "Harvested",
-    "location": "Uttarakhand",
-    "quantity": "100 kg"
-}
-
-print("\nBlockchain valid:", honey_chain.is_valid())
-        
-        
-        
-
-    
+for item in history:
+    print(item)
