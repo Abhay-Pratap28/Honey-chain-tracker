@@ -4,6 +4,9 @@
 import hashlib
 import json
 from datetime import datetime
+import qrcode
+
+
 
 # Creating Block
 
@@ -63,14 +66,14 @@ class Blockchain:
 
         return result
 
-    def register_batch(self , batch_id , beekeper , location , quantity ):
+    def register_batch(self , batch_id , beekeeper , location , quantity ):
 
         data = {
             "batch_id" : batch_id,
             "stage"    : "harvested",
-            "beekeper" : beekeper,
+            "beekeeper" : beekeeper,
             "location" : location,
-            "qunatity" : quantity
+            "quantity" : quantity
         }
 
         self.add_block(data)
@@ -79,11 +82,10 @@ class Blockchain:
 
         data={
             "batch_id" : batch_id,
-            "stage"    : stage
+            "stage"    : stage,
+            "location" : location
             }
 
-        if location :
-            data[location] = location
 
         self.add_block(data) 
                 
@@ -122,9 +124,45 @@ honey_chain.update_batch(
     "HC001" , "Distributed" , "Dehradun"
 )
 
-history = honey_chain.find_batch("HC001")
 
-print("\n-----------BATCH HISTORY-----------")
 
-for item in history:
-    print(item)
+def generate_qr(batch_id):
+    qr = qrcode.make(batch_id)
+    filename = batch_id + "_QR.png"
+    qr.save(filename)
+
+    print("QR Generated = " , filename)
+    print("QR contains batch_id =" , batch_id)
+
+
+def verify_batch(blockcahin , batch_id):
+
+    history = blockcahin.find_batch(batch_id)
+
+    if not history:
+        print("Batch not found")
+        return 
+
+    print("\n--------------Honey Batch-----------")
+
+    for record in history:
+        print("Stage = " , record.get("stage"))
+
+        if "beekeeper" in record:
+            print("Beekeeper:", record["beekeeper"])
+
+        if "location" in record:
+            print("Location:", record["location"])
+
+        if "quantity" in record:
+            print("Quantity:", record["quantity"])
+
+        print("-------------------------------")
+
+def scan_qr(batch_id):
+          print("\nQR Scanned")
+          print("Batch_Id =", batch_id)
+          verify_batch(honey_chain, batch_id)
+
+generate_qr("HC001")
+scan_qr("HC001")
