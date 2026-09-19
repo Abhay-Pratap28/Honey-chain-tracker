@@ -62,7 +62,7 @@ class Blockchain:
         for block in self.chain:
 
             if( batch_id == block.data.get("batch_id")):
-                result.append(block.data)
+                result.append(block)
 
         return result
 
@@ -86,7 +86,7 @@ class Blockchain:
             print("Batch not found !")
             return
 
-        current_stage = history[-1]["stage"]
+        current_stage = history[-1].data["stage"]
 
         stages = ["harvested", "processed", "bottled", "distributed"]
 
@@ -122,6 +122,8 @@ class Blockchain:
         self.add_block(data) 
 
         print("\nBatch updated succesfully")
+
+        generate_qr(batch_id)
                 
     def is_valid(self):
 
@@ -151,7 +153,31 @@ def generate_qr(batch_id):
         print("\n❌Batch not found")
         return
 
-    qr_data = "Honeytrace ://" + batch_id
+    first_record = history[0]
+
+    qr_data = ""
+
+    qr_data += "HONEY TRACEABILITY\n"
+    qr_data += "========================\n"
+    qr_data += "Batch Id  :" + batch_id +"\n"
+    qr_data += "Beekeeper :" + str(first_record.data.get("beekeeper")) +"\n"
+    qr_data += "Quantity  :" + str(first_record.data.get("quantity")) +"\n"
+    qr_data += "Location  :" + str(first_record.data.get("location")) +"\n"
+    qr_data += "Time      :" + str(first_record.timestamp) +"\n"
+    qr_data += "\nSUPPLY CHAIN HISTORY\n"
+
+    for i , block in enumerate( history , start=1):
+
+        record = block.data
+
+        qr_data += "\nStep    :" + str(i) +"\n"
+        qr_data += "Stage     :" + str(record.get("stage")) +"\n"
+        qr_data += "Location  :" + str(record.get("location"))+ "\n"
+        qr_data += "Time      :" + str(block.timestamp) +"\n"
+
+    qr_data += "\n========================\n"
+    qr_data += "BLOCKCHAIN VERIFICATION\n"
+    qr_data += "Status: " + ("VALID" if honey_chain.is_valid() else "TAMPERED") + "\n"
 
     qr = qrcode.make(qr_data)
 
@@ -159,8 +185,7 @@ def generate_qr(batch_id):
     qr.save(filename)
 
     print("QR Generated = " , filename)
-    print("QR Data =" , qr_data)
-
+    
 
 def verify_batch(blockchain , batch_id):
 
@@ -175,7 +200,7 @@ def verify_batch(blockchain , batch_id):
     print("        HONEY BATCH")
     print("================================")
 
-    first_record = history[0]
+    first_record = history[0].data
 
     print("Batch_id  :" , batch_id)
     print("Beekeeper :", first_record.get("beekeeper"))
@@ -183,11 +208,14 @@ def verify_batch(blockchain , batch_id):
 
     print("\n----- Supply Chain History -----")
 
-    for i , record in enumerate(history , start =1):
+    for i , block in enumerate(history , start =1):
+
+        record = block.data
 
         print("Step     :", i)
         print("stage    :", record.get("stage"))
         print("Location :", record.get("location"))
+        print("Time     :", block.timestamp)
         print("\n================================")
 
     print("\n================================")
@@ -220,23 +248,6 @@ def tamper_test(blockchain):
     else:
         print("WARNING: Blockchain has been TAMPERED!")
 
-def scan_qr(qr_data):
-
-    print("\n========== QR SCAN ==========")
-    print("QR Data:", qr_data)
-
-    if not qr_data.startswith("Honeytrace ://"):
-        print("❌ Invalid QR code!")
-        return
-
-    batch_id = qr_data.replace("Honeytrace ://" , "")
-
-    print("Batch ID =" , batch_id)
-
-    verify_batch(honey_chain , batch_id)
-
-          
-
 # generate_qr("HC001")
 # scan_qr("HC001")
 
@@ -248,10 +259,9 @@ while True:
     print("1. Register Batch")
     print("2. Update Batch")
     print("3. Verify Batch")
-    print("4. Generate QR")
-    print("5. Check Blockchain")
-    print("6. Temper test")
-    print("7. Exit")
+    print("4. Check Blockchain")
+    print("5. Temper test")
+    print("6. Exit")
 
     choice = int(input("Enter Choice:"))
 
@@ -288,29 +298,18 @@ while True:
 
     elif (choice == 4):
 
-        batch_id = input("Enter batch id")
-
-        history = honey_chain.find_batch(batch_id)
-
-        if not history:
-            print("\n❌Batch not found")
-
-        else:
-            generate_qr(batch_id)
-
-    elif (choice == 5):
-
         if (honey_chain.is_valid()):
             print("\nBlockchain is valid.")
 
         else:
             print("\nBlocchain has been tempered ! ")
 
-    elif (choice == 6):
+    elif (choice == 5):
 
         tamper_test(honey_chain)
 
-    elif (choice == 7):
+    
+    elif (choice == 6):
     
         print("\nThankyou for using Honey Tracebility System")
         break
