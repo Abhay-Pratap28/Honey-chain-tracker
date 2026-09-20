@@ -68,6 +68,10 @@ class Blockchain:
 
     def register_batch(self , batch_id , beekeeper , location , quantity ):
 
+        if self.find_batch(batch_id):
+            print("\n Batch alredy exists")
+            return
+
         data = {
             "batch_id" : batch_id,
             "stage"    : "harvested",
@@ -78,7 +82,10 @@ class Blockchain:
 
         self.add_block(data)
 
-    def update_batch(self , batch_id , stage , location = None):
+        print("\nBatch registered succesfully")
+
+    def update_batch(self , batch_id , stage , location = None , handler = None , 
+                     quality = None , seal_id = None):
 
         history = self.find_batch(batch_id)
 
@@ -88,13 +95,13 @@ class Blockchain:
 
         current_stage = history[-1].data["stage"]
 
-        stages = ["harvested", "processed", "bottled", "distributed"]
+        stages = ["harvested", "extracted", "processed", "packaged", "dispatched"]
 
         stage = stage.lower()
 
         if stage not in stages:
             print("Invalid stage!")
-            print("Use: processed, bottled or distributed")
+            print("Use: extracted, processed, packaged or dispatched")
             return
 
         current_index = stages.index(current_stage.lower())
@@ -115,7 +122,10 @@ class Blockchain:
         data={
             "batch_id" : batch_id,
             "stage"    : stage,
-            "location" : location
+            "location" : location , 
+            "handler"  : handler ,
+            "quality"  : quality , 
+            "seal_id"  : seal_id
             }
 
 
@@ -148,44 +158,55 @@ honey_chain = Blockchain()
 def generate_qr(batch_id):
 
     history = honey_chain.find_batch(batch_id)
-    
+
     if not history:
-        print("\n❌Batch not found")
+        print("\n❌ Batch not found")
         return
 
-    first_record = history[0]
+    first_record = history[0].data
 
     qr_data = ""
 
-    qr_data += "HONEY TRACEABILITY\n"
-    qr_data += "========================\n"
-    qr_data += "Batch Id  :" + batch_id +"\n"
-    qr_data += "Beekeeper :" + str(first_record.data.get("beekeeper")) +"\n"
-    qr_data += "Quantity  :" + str(first_record.data.get("quantity")) +"\n"
-    qr_data += "Location  :" + str(first_record.data.get("location")) +"\n"
-    qr_data += "Time      :" + str(first_record.timestamp) +"\n"
-    qr_data += "\nSUPPLY CHAIN HISTORY\n"
+    qr_data += "HONEY CHAIN - TRACEABILITY\n"
+    qr_data += "==============================\n"
 
-    for i , block in enumerate( history , start=1):
+    qr_data += "BATCH INFORMATION\n"
+    qr_data += "Batch ID  : " + batch_id + "\n"
+    qr_data += "Beekeeper : " + str(first_record.get("beekeeper")) + "\n"
+    qr_data += "Quantity  : " + str(first_record.get("quantity")) + "\n"
+    qr_data += "Harvest Location : " + str(first_record.get("location")) + "\n"
+
+    qr_data += "\nSUPPLY CHAIN JOURNEY\n"
+    qr_data += "==============================\n"
+
+    for i, block in enumerate(history, start=1):
 
         record = block.data
 
-        qr_data += "\nStep    :" + str(i) +"\n"
-        qr_data += "Stage     :" + str(record.get("stage")) +"\n"
-        qr_data += "Location  :" + str(record.get("location"))+ "\n"
-        qr_data += "Time      :" + str(block.timestamp) +"\n"
+        qr_data += "\nSTEP " + str(i) + "\n"
+        qr_data += "Stage    : " + str(record.get("stage")) + "\n"
+        qr_data += "Location : " + str(record.get("location")) + "\n"
+        qr_data += "Handler  : " + str(record.get("handler", "N/A")) + "\n"
+        qr_data += "Time     : " + str(block.timestamp) + "\n"
 
-    qr_data += "\n========================\n"
+    qr_data += "\n==============================\n"
     qr_data += "BLOCKCHAIN VERIFICATION\n"
-    qr_data += "Status: " + ("VALID" if honey_chain.is_valid() else "TAMPERED") + "\n"
+    qr_data += "Status: "
+
+    if honey_chain.is_valid():
+        qr_data += "VALID\n"
+    else:
+        qr_data += "TAMPERED\n"
+
+    qr_data += "==============================\n"
 
     qr = qrcode.make(qr_data)
 
     filename = batch_id + "_QR.png"
+
     qr.save(filename)
 
-    print("QR Generated = " , filename)
-    
+    print("\n✅ QR Generated:", filename)
 
 def verify_batch(blockchain , batch_id):
 
@@ -200,13 +221,17 @@ def verify_batch(blockchain , batch_id):
     print("        HONEY BATCH")
     print("================================")
 
-    first_record = history[0].data
+    first_record = history[0]
 
     print("Batch_id  :" , batch_id)
-    print("Beekeeper :", first_record.get("beekeeper"))
-    print("Quantity  : ", first_record.get("quantity"))
+    print("Beekeeper :", first_record.data.get("beekeeper"))
+    print("Location  :", first_record.data.get("location"))
+    print("Quantity  :", first_record.data.get("quantity"))
+    print("Time      :", first_record.timestamp)
 
     print("\n----- Supply Chain History -----")
+
+    history = history[1::]
 
     for i , block in enumerate(history , start =1):
 
@@ -215,12 +240,20 @@ def verify_batch(blockchain , batch_id):
         print("Step     :", i)
         print("stage    :", record.get("stage"))
         print("Location :", record.get("location"))
+        print("Handler  :", record.get("handler"))
+
+        if record.get("quality"):
+            print("Quality  :", record.get("quality"))
+
+        if record.get("seal_id"):
+                    print("Seal ID  :", record.get("seal_id"))
+
         print("Time     :", block.timestamp)
         print("\n================================")
 
     print("\n================================")
 
-    if blockchain.is_valid():
+    if blockchain.is_valid(): 
             print("Blockchain Status : ✅ VALID")
     else:
             print("Blockchain Status : ⚠️ TAMPERED")
@@ -276,16 +309,28 @@ while True:
             batch_id, beekeeper , location , quantity
         )
 
-        print("\nBatch registered succesfully")
 
     elif (choice == 2):
 
         batch_id = input("Enter Batch ID: ")
         stage = input("Enter new stage: ")
         location = input("Enter current location: ")
+        handler = input("Enter Handler/Unit Name: ")
+
+        if stage.lower() == "processed":
+            quality = input("Enter Quality/Test Status: ")
+
+        else:
+            quality = None
+
+        if stage.lower() == "packaged":
+            quality = input("Enter seal_id: ")
+        
+        else:
+            quality = None
 
         honey_chain.update_batch(
-            batch_id , stage , location
+            batch_id, stage, location, handler, quality
         )
 
     elif (choice == 3):
