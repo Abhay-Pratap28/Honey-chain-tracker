@@ -340,14 +340,26 @@ def tamper_test(blockchain):
 
 def view_database():
 
-    cursor.execute("SELECT * FROM batches")
-
-    rows = cursor.fetchall()
-
     print("\n========== BATCH DATABASE ==========")
+
+    cursor.execute("SELECT * FROM batches")
+    rows = cursor.fetchall()
 
     for row in rows:
         print(row)
+
+    print("\n====== BLOCKCHAIN RECORDS ======")
+
+    cursor.execute("""
+        SELECT batch_id, stage, location, handler,
+               quality, seal_id, timestamp
+        FROM blockchain_record
+    """)
+
+    records = cursor.fetchall()
+
+    for record in records:
+        print(record)
 
     print("====================================")
 
