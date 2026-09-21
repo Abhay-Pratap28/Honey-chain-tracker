@@ -167,6 +167,26 @@ class Blockchain:
 
         self.add_block(data) 
 
+        block = self.chain[-1]
+
+        cursor.execute("""
+        INSERT INTO blockchain_record (batch_id, stage, location, handler, quality, seal_id,
+        timestamp, prevhash, hash)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            batch_id,
+            stage,
+            location,
+            handler,
+            quality,
+            seal_id,
+            block.timestamp,
+            block.prevhash,
+            block.hash
+        ))
+
+        conn.commit()
+
         print("\nBatch updated succesfully")
 
         generate_qr(batch_id)
