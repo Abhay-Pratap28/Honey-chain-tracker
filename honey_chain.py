@@ -5,8 +5,35 @@ import hashlib
 import json
 from datetime import datetime
 import qrcode
+import sqlite3
 
+conn =sqlite3.connect("honey_chain.db")
+cursor  = conn.cursor()
 
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS batches(
+    batch_id TEXT PRIMARY KEY,
+    beekeeper TEXT,
+    location TEXT,
+    quantity TEXT)
+    """)
+
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS blockchain_record(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    batch_id TEXT,
+    stage TEXT,
+    location TEXT,
+    handler TEXT,
+    quality TEXT,
+    seal_id TEXT,
+    timestamp TEXT,
+    prevhash TEXT,
+    hash TEXT
+)
+""")
+
+conn.commit()
 
 # Creating Block
 
@@ -81,6 +108,15 @@ class Blockchain:
         }
 
         self.add_block(data)
+
+        cursor.execute("""
+        INSERT INTO BATCHES (batch_id , beekeeper , location , quantity )
+        VALUES( ? , ? , ? ,? )
+        """,(
+            batch_id , beekeeper , location , quantity
+        ))
+
+        conn.commit()
 
         print("\nBatch registered succesfully")
 
@@ -281,6 +317,20 @@ def tamper_test(blockchain):
     else:
         print("WARNING: Blockchain has been TAMPERED!")
 
+
+def view_database():
+
+    cursor.execute("SELECT * FROM batches")
+
+    rows = cursor.fetchall()
+
+    print("\n========== BATCH DATABASE ==========")
+
+    for row in rows:
+        print(row)
+
+    print("====================================")
+
 # generate_qr("HC001")
 # scan_qr("HC001")
 
@@ -294,7 +344,8 @@ while True:
     print("3. Verify Batch")
     print("4. Check Blockchain")
     print("5. Temper test")
-    print("6. Exit")
+    print("6. View database")
+    print("7. Exit")
 
     choice = int(input("Enter Choice:"))
 
@@ -353,8 +404,12 @@ while True:
 
         tamper_test(honey_chain)
 
-    
+
     elif (choice == 6):
+    
+            view_database()
+    
+    elif (choice == 7):
     
         print("\nThankyou for using Honey Tracebility System")
         break
@@ -362,5 +417,7 @@ while True:
     else:
 
         print("Invalid choice")
+
+
 
     
