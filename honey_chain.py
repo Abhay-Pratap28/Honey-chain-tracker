@@ -375,10 +375,10 @@ while True:
             quality = None
 
         if stage.lower() == "packaged":
-            quality = input("Enter seal_id: ")
+            seal_id = input("Enter seal_id: ")
         
         else:
-            quality = None
+            seal_id = None
 
         honey_chain.update_batch(
             batch_id, stage, location, handler, quality
