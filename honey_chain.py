@@ -368,88 +368,88 @@ def view_database():
 
 # Creating menu
 
-while True:
+if __name__ == "__main__":
 
-    print("\n=========Honey Tracebility System===========")
-    print("1. Register Batch")
-    print("2. Update Batch")
-    print("3. Verify Batch")
-    print("4. Check Blockchain")
-    print("5. Temper test")
-    print("6. View database")
-    print("7. Exit")
+    while True:
 
-    choice = int(input("Enter Choice:"))
+        print("\n=========Honey Tracebility System===========")
+        print("1. Register Batch")
+        print("2. Update Batch")
+        print("3. Verify Batch")
+        print("4. Check Blockchain")
+        print("5. Temper test")
+        print("6. View database")
+        print("7. Exit")
 
-    if (choice == 1):
+        choice = int(input("Enter Choice:"))
 
-        batch_id = input("Enter Batch ID: ")
-        beekeeper = input("Enter Beekeeper/Farm name: ")
-        location = input("Enter Harvest Location: ")
-        quantity = input("Enter Quantity: ")
+        if (choice == 1):
 
-        honey_chain.register_batch(
-            batch_id, beekeeper , location , quantity
-        )
+            batch_id = input("Enter Batch ID: ")
+            beekeeper = input("Enter Beekeeper/Farm name: ")
+            location = input("Enter Harvest Location: ")
+            quantity = input("Enter Quantity: ")
+
+            honey_chain.register_batch(
+                batch_id, beekeeper , location , quantity
+            )
 
 
-    elif (choice == 2):
+        elif (choice == 2):
 
-        batch_id = input("Enter Batch ID: ")
-        stage = input("Enter new stage: ")
-        location = input("Enter current location: ")
-        handler = input("Enter Handler/Unit Name: ")
+            batch_id = input("Enter Batch ID: ")
+            stage = input("Enter new stage: ")
+            location = input("Enter current location: ")
+            handler = input("Enter Handler/Unit Name: ")
 
-        if stage.lower() == "processed":
-            quality = input("Enter Quality/Test Status: ")
+            if stage.lower() == "processed":
+                quality = input("Enter Quality/Test Status: ")
 
-        else:
-            quality = None
+            else:
+                quality = None
 
-        if stage.lower() == "packaged":
-            seal_id = input("Enter seal_id: ")
+            if stage.lower() == "packaged":
+                seal_id = input("Enter seal_id: ")
+            
+            else:
+                seal_id = None
+
+            honey_chain.update_batch(
+                batch_id, stage, location, handler, quality
+            )
+
+        elif (choice == 3):
+
+            batch_id = input("Ener batch id :")
+
+            verify_batch(
+                honey_chain , batch_id
+            )
+
+        elif (choice == 4):
+
+            if (honey_chain.is_valid()):
+                print("\nBlockchain is valid.")
+
+            else:
+                print("\nBlocchain has been tempered ! ")
+
+        elif (choice == 5):
+
+            tamper_test(honey_chain)
+
+
+        elif (choice == 6):
         
-        else:
-            seal_id = None
-
-        honey_chain.update_batch(
-            batch_id, stage, location, handler, quality
-        )
-
-    elif (choice == 3):
-
-        batch_id = input("Ener batch id :")
-
-        verify_batch(
-            honey_chain , batch_id
-        )
-
-    elif (choice == 4):
-
-        if (honey_chain.is_valid()):
-            print("\nBlockchain is valid.")
+                view_database()
+        
+        elif (choice == 7):
+        
+            print("\nThankyou for using Honey Tracebility System")
+            break
 
         else:
-            print("\nBlocchain has been tempered ! ")
 
-    elif (choice == 5):
+            print("Invalid choice")
 
-        tamper_test(honey_chain)
-
-
-    elif (choice == 6):
-    
-            view_database()
-    
-    elif (choice == 7):
-    
-        print("\nThankyou for using Honey Tracebility System")
-        break
-
-    else:
-
-        print("Invalid choice")
-
-
-
-    
+        
