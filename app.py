@@ -246,6 +246,309 @@ def update_batch_window():
     ).pack(pady=20)
 
 
+# Verify batch window
+def verify_batch_window():
+
+    window = tk.Toplevel(root)
+    window.title("Verify Honey Batch")
+    window.geometry("700x600")
+
+    tk.Label(
+        window,
+        text="VERIFY BATCH",
+        font=("Arial", 20, "bold")
+    ).pack(pady=15)
+
+    # Batch ID - visible from the beginning
+    tk.Label(
+        window,
+        text="Enter Batch ID"
+    ).pack()
+
+    batch_id_entry = tk.Entry(
+        window,
+        width=35
+    )
+    batch_id_entry.pack(pady=5)
+
+    # Verify button
+    verify_button = tk.Button(
+        window,
+        text="VERIFY BATCH",
+        width=25,
+        height=2
+    )
+    verify_button.pack(pady=10)
+
+    # Result box - CREATED but NOT SHOWN initially
+    result_box = tk.Text(
+        window,
+        width=75,
+        height=25
+    )
+
+    def verify():
+
+        batch_id = batch_id_entry.get().strip()
+
+        if not batch_id:
+            messagebox.showwarning(
+                "Missing Batch ID",
+                "Please enter Batch ID."
+            )
+            return
+
+        history = honey_chain.find_batch(batch_id)
+
+        if not history:
+            messagebox.showerror(
+                "Batch Not Found",
+                f"Batch {batch_id} does not exist."
+            )
+            return
+
+        # Show result box ONLY after valid Batch ID
+        result_box.pack(pady=15)
+
+        result_box.delete("1.0", tk.END)
+
+        first_record = history[0].data
+
+        result_box.insert(
+            tk.END,
+            "========== HONEY CHAIN ==========\n\n"
+        )
+
+        result_box.insert(
+            tk.END,
+            f"Batch ID     : {first_record['batch_id']}\n"
+        )
+
+        result_box.insert(
+            tk.END,
+            f"Beekeeper    : {first_record['beekeeper']}\n"
+        )
+
+        result_box.insert(
+            tk.END,
+            f"Quantity     : {first_record['quantity']}\n"
+        )
+
+        result_box.insert(
+            tk.END,
+            f"Harvest Site : {first_record['location']}\n\n"
+        )
+
+        result_box.insert(
+            tk.END,
+            "--------- JOURNEY ---------\n\n"
+        )
+
+        for block in history:
+
+            data = block.data
+
+            result_box.insert(
+                tk.END,
+                f"Stage     : {data.get('stage', '')}\n"
+            )
+
+            result_box.insert(
+                tk.END,
+                f"Location  : {data.get('location', '')}\n"
+            )
+
+            result_box.insert(
+                tk.END,
+                f"Handler   : {data.get('handler', '')}\n"
+            )
+
+            if data.get("quality"):
+                result_box.insert(
+                    tk.END,
+                    f"Quality   : {data.get('quality')}\n"
+                )
+
+            if data.get("seal_id"):
+                result_box.insert(
+                    tk.END,
+                    f"Seal ID   : {data.get('seal_id')}\n"
+                )
+
+            result_box.insert(
+                tk.END,
+                f"Time      : {block.timestamp}\n"
+            )
+
+            result_box.insert(
+                tk.END,
+                "----------------------------\n"
+            )
+
+        status = honey_chain.is_valid()
+
+        result_box.insert(
+            tk.END,
+            "\nBLOCKCHAIN STATUS: "
+        )
+
+        if status:
+            result_box.insert(
+                tk.END,
+                "VALID"
+            )
+        else:
+            result_box.insert(
+                tk.END,
+                "TAMPERED"
+            )
+
+    # Connect button to verify function
+    verify_button.config(command=verify)
+
+#Track window
+def track_batch_window():
+
+    window = tk.Toplevel(root)
+    window.title("Track Honey Batch")
+    window.geometry("700x600")
+
+    tk.Label(
+        window,
+        text="TRACK BATCH",
+        font=("Arial", 20, "bold")
+    ).pack(pady=15)
+
+    # Batch ID
+    tk.Label(
+        window,
+        text="Enter Batch ID"
+    ).pack()
+
+    batch_id_entry = tk.Entry(
+        window,
+        width=35
+    )
+    batch_id_entry.pack(pady=5)
+
+    # Track button
+    track_button = tk.Button(
+        window,
+        text="TRACK BATCH",
+        width=25,
+        height=2
+    )
+    track_button.pack(pady=10)
+
+    # Result area - hidden initially
+    result_box = tk.Text(
+        window,
+        width=75,
+        height=25
+    )
+
+    def track():
+
+        batch_id = batch_id_entry.get().strip()
+
+        if not batch_id:
+            messagebox.showwarning(
+                "Missing Batch ID",
+                "Please enter Batch ID."
+            )
+            return
+
+        history = honey_chain.find_batch(batch_id)
+
+        if not history:
+            messagebox.showerror(
+                "Batch Not Found",
+                f"Batch {batch_id} does not exist."
+            )
+            return
+
+        # Show results only after valid Batch ID
+        result_box.pack(pady=15)
+
+        result_box.delete("1.0", tk.END)
+
+        first_record = history[0].data
+
+        result_box.insert(
+            tk.END,
+            "========== BATCH JOURNEY ==========\n\n"
+        )
+
+        result_box.insert(
+            tk.END,
+            f"Batch ID     : {first_record['batch_id']}\n"
+        )
+
+        result_box.insert(
+            tk.END,
+            f"Beekeeper    : {first_record['beekeeper']}\n"
+        )
+
+        result_box.insert(
+            tk.END,
+            f"Quantity     : {first_record['quantity']}\n"
+        )
+
+        result_box.insert(
+            tk.END,
+            f"Harvest Site : {first_record['location']}\n\n"
+        )
+
+        result_box.insert(
+            tk.END,
+            "------------- JOURNEY -------------\n\n"
+        )
+
+        for block in history:
+
+            data = block.data
+
+            result_box.insert(
+                tk.END,
+                f"Stage    : {data.get('stage', 'Harvested')}\n"
+            )
+
+            result_box.insert(
+                tk.END,
+                f"Location : {data.get('location', '')}\n"
+            )
+
+            result_box.insert(
+                tk.END,
+                f"Handler  : {data.get('handler', '')}\n"
+            )
+
+            if data.get("quality"):
+                result_box.insert(
+                    tk.END,
+                    f"Quality  : {data.get('quality')}\n"
+                )
+
+            if data.get("seal_id"):
+                result_box.insert(
+                    tk.END,
+                    f"Seal ID  : {data.get('seal_id')}\n"
+                )
+
+            result_box.insert(
+                tk.END,
+                f"Time     : {block.timestamp}\n"
+            )
+
+            result_box.insert(
+                tk.END,
+                "\n-----------------------------------\n\n"
+            )
+
+    track_button.config(command=track)
+
+
+
 # MAIN WINDOW----
 
 
@@ -290,6 +593,30 @@ update_button = tk.Button(
 )
 
 update_button.pack(pady=10)
+
+# Verify button
+
+verify_button = tk.Button(
+    root,
+    text="VERIFY BATCH",
+    command=verify_batch_window,
+    width=25,
+    height=2
+)
+
+verify_button.pack(pady=10)
+
+# Track button
+
+track_button = tk.Button(
+    root,
+    text="TRACK BATCH",
+    command=track_batch_window,
+    width=25,
+    height=2
+)
+
+track_button.pack(pady=10)
 
 
 
