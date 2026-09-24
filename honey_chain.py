@@ -35,6 +35,14 @@ CREATE TABLE IF NOT EXISTS blockchain_record(
 
 conn.commit()
 
+try:
+    cursor.execute(
+        "ALTER TABLE blockchain_record ADD COLUMN block_index INTEGER"
+    )
+    conn.commit()
+except sqlite3.OperationalError:
+    pass
+
 # Creating Block
 
 class Block:
@@ -111,7 +119,7 @@ class Blockchain:
 
        cursor.execute("""
         Select stage , location , handler , quality , seal_id,
-        timestamp , prevhash , hash
+        timestamp , prevhash , hash , block_index
         from blockchain_record 
         where batch_id = ?""",(batch_id,))
 
@@ -129,7 +137,7 @@ class Blockchain:
                    }
 
             block = Block(
-               index , data , record[6]
+               record[8] , data , record[6]
            )
 
             block.timestamp = record[5]
@@ -153,13 +161,32 @@ class Blockchain:
             "quantity" : quantity
         }
 
-        self.add_block(data)
+        block = Block(1, data, "0")
 
         cursor.execute("""
         INSERT INTO BATCHES (batch_id , beekeeper , location , quantity )
         VALUES( ? , ? , ? ,? )
         """,(
             batch_id , beekeeper , location , quantity
+        ))
+
+        cursor.execute("""
+        INSERT INTO blockchain_record (
+            batch_id, stage, location, handler, quality, seal_id,
+            timestamp, prevhash, hash, block_index
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            batch_id,
+            "harvested",
+            location,
+            None,
+            None,
+            None,
+            block.timestamp,
+            block.prevhash,
+            block.hash,
+            block.index
         ))
 
         conn.commit()
@@ -217,8 +244,8 @@ class Blockchain:
 
         cursor.execute("""
         INSERT INTO blockchain_record (batch_id, stage, location, handler, quality, seal_id,
-        timestamp, prevhash, hash)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        timestamp, prevhash, hash , block_index)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ? , ?)
         """, (
             batch_id,
             stage,
@@ -228,7 +255,8 @@ class Blockchain:
             seal_id,
             block.timestamp,
             block.prevhash,
-            block.hash
+            block.hash,
+            block.index
         ))
 
         conn.commit()
@@ -236,19 +264,100 @@ class Blockchain:
         print("\nBatch updated succesfully")
 
         generate_qr(batch_id)
+
+    def load_batch_from_database(self, batch_id):
+
+        cursor.execute("""
+            SELECT batch_id, beekeeper, location, quantity
+            FROM batches
+            WHERE batch_id = ?
+        """, (batch_id,))
+
+        batch = cursor.fetchone()
+
+        if not batch:
+            return []
+
+        cursor.execute("""
+            SELECT stage, location, handler, quality, seal_id,
+                timestamp, prevhash, hash, block_index
+            FROM blockchain_record
+            WHERE batch_id = ?
+            ORDER BY block_index
+        """, (batch_id,))
+
+        records = cursor.fetchall()
+
+        history = []
+
+        for record in records:
+
+            stage = record[0]
+
+            if stage == "harvested":
+
+                data = {
+                    "batch_id": batch[0],
+                    "stage": "harvested",
+                    "beekeeper": batch[1],
+                    "location": batch[2],
+                    "quantity": batch[3]
+                }
+
+            else:
+
+                data = {
+                    "batch_id": batch_id,
+                    "stage": stage,
+                    "location": record[1],
+                    "handler": record[2],
+                    "quality": record[3],
+                    "seal_id": record[4]
+                }
+
+            block = Block(
+                record[8],
+                data,
+                record[6]
+            )
+
+            block.timestamp = record[5]
+            block.hash = record[7]
+
+            history.append(block)
+
+        return history
+
                 
-    def is_valid(self):
+    def is_valid(self, batch_id):
 
-        for i in range( 1, len(self.chain)):
+        history = self.load_batch_from_database(batch_id)
 
-            current = self.chain[i]
-            previous = self.chain[i-1]
+        if not history:
+            return False
 
+        # Check every block's own hash
+        for i in range(len(history)):
+
+            current = history[i]
+
+            # Check whether the block data has been changed
             if current.hash != current.calculate_hash():
                 return False
 
-            if current.prevhash != previous.hash:
-                return False
+            # First block must point to "0"
+            if i == 0:
+
+                if current.prevhash != "0":
+                    return False
+
+            # Every other block must point to the previous block
+            else:
+
+                previous = history[i - 1]
+
+                if current.prevhash != previous.hash:
+                    return False
 
         return True
 
@@ -304,7 +413,7 @@ def generate_qr(batch_id):
     qr_data += "BLOCKCHAIN VERIFICATION\n"
     qr_data += "Status: "
 
-    if honey_chain.is_valid():
+    if honey_chain.is_valid( batch_id):
         qr_data += "VALID\n"
     else:
         qr_data += "TAMPERED\n"
@@ -364,7 +473,7 @@ def verify_batch(blockchain , batch_id):
 
     print("\n================================")
 
-    if blockchain.is_valid(): 
+    if blockchain.is_valid(batch_id): 
             print("Blockchain Status : ✅ VALID")
     else:
             print("Blockchain Status : ⚠️ TAMPERED")
@@ -377,17 +486,26 @@ def tamper_test(blockchain):
 
     print("\n========== TAMPER TEST ==========")
 
-    if len(blockchain.chain) <= 1:
-        print("No batch data available!")
+    batch_id = input("Enter Batch ID: ").strip()
+
+    history = blockchain.load_batch_from_database(batch_id)
+
+    if not history:
+        print("Batch not found!")
         return
 
-    print("Changing data inside Block 1...")
+    print("Changing quantity inside the database...")
 
-    # Tamper with the stored data
-    blockchain.chain[1].data["quantity"] = "1000 kg"
+    cursor.execute("""
+        UPDATE batches
+        SET quantity = ?
+        WHERE batch_id = ?
+    """, ("1000 kg", batch_id))
+
+    conn.commit()
 
     # Check blockchain
-    if blockchain.is_valid():
+    if blockchain.is_valid(batch_id):
         print("Blockchain is VALID")
     else:
         print("WARNING: Blockchain has been TAMPERED!")
@@ -470,7 +588,7 @@ if __name__ == "__main__":
                 seal_id = None
 
             honey_chain.update_batch(
-                batch_id, stage, location, handler, quality
+                batch_id, stage, location, handler, quality , seal_id
             )
 
         elif (choice == 3):
@@ -483,11 +601,13 @@ if __name__ == "__main__":
 
         elif (choice == 4):
 
-            if (honey_chain.is_valid()):
+            batch_id = input("Enter batch Id : ")
+
+            if (honey_chain.is_valid(batch_id)):
                 print("\nBlockchain is valid.")
 
             else:
-                print("\nBlocchain has been tempered ! ")
+                print("\nBlockchain has been tempered ! ")
 
         elif (choice == 5):
 
