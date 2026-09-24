@@ -169,14 +169,6 @@ class Blockchain:
     def update_batch(self , batch_id , stage , location = None , handler = None , 
                      quality = None , seal_id = None):
 
-        print("\nDEBUG Batch ID:", batch_id)
-
-        cursor.execute(
-        "SELECT batch_id FROM batches WHERE batch_id = ?",
-        (batch_id,))
-
-        print("DEBUG Database result:", cursor.fetchone())
-
         history = self.find_batch(batch_id)
 
         if not history :
@@ -296,7 +288,16 @@ def generate_qr(batch_id):
         qr_data += "\nSTEP " + str(i) + "\n"
         qr_data += "Stage    : " + str(record.get("stage")) + "\n"
         qr_data += "Location : " + str(record.get("location")) + "\n"
-        qr_data += "Handler  : " + str(record.get("handler", "N/A")) + "\n"
+
+        if record.get("handler"):
+            qr_data += "Handler  : " + str(record.get("handler", "N/A")) + "\n"
+
+        if record.get("quality"):
+            qr_data += "Quality  : " + str(record.get("quality")) + "\n"
+
+        if record.get("seal_id"):
+            qr_data += "Seal ID  : " + str(record.get("seal_id")) + "\n"
+
         qr_data += "Time     : " + str(block.timestamp) + "\n"
 
     qr_data += "\n==============================\n"

@@ -476,9 +476,18 @@ def track_batch_window():
 
         first_record = history[0].data
 
+        current_record = history[-1].data.get("stage","harvested")
+
         result_box.insert(
             tk.END,
             "========== BATCH JOURNEY ==========\n\n"
+        )
+
+        result_box.insert(
+            tk.END,
+            f"""CURRENT STAGE : {current_record.upper()}\n
+-------------------------------------\n"""
+                
         )
 
         result_box.insert(
