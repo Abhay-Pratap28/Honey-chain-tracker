@@ -7,7 +7,7 @@ from datetime import datetime
 import qrcode
 import sqlite3
 
-conn =sqlite3.connect("honey_chain.db")
+conn =sqlite3.connect("honey_chain_database.db")
 cursor  = conn.cursor()
 
 cursor.execute("""
@@ -84,14 +84,60 @@ class Blockchain:
 
     def find_batch(self , batch_id):
 
-        result = []
+       cursor.execute(""" SELECT batch_id , beekeeper, location , quantity
+        from BATCHES WHERE batch_id = ?
+        """,(batch_id,))
 
-        for block in self.chain:
+       batch = cursor.fetchone()
 
-            if( batch_id == block.data.get("batch_id")):
-                result.append(block)
+       if not batch :
+           return []
 
-        return result
+       harvested_data = {
+           "batch_id" : batch[0],
+           "stage" : "harvested",
+           "beekeeper" : batch[1],
+           "location" : batch[2],
+           "quantity" : batch[3]
+       }
+
+       history = []
+
+       harvested_block = Block(
+           1 , harvested_data , "0"
+       )
+
+       history.append(harvested_block)
+
+       cursor.execute("""
+        Select stage , location , handler , quality , seal_id,
+        timestamp , prevhash , hash
+        from blockchain_record 
+        where batch_id = ?""",(batch_id,))
+
+       records = cursor.fetchall()
+
+       for index, record in enumerate(records, start=2):
+            
+           
+            data = { "batch_id": batch_id, 
+                   "stage": record[0], 
+                   "location": record[1], 
+                   "handler": record[2], 
+                   "quality": record[3], 
+                   "seal_id": record[4] 
+                   }
+
+            block = Block(
+               index , data , record[6]
+           )
+
+            block.timestamp = record[5]
+            block.hash = record[7] 
+            history.append(block) 
+
+       return history
+
 
     def register_batch(self , batch_id , beekeeper , location , quantity ):
 
@@ -122,6 +168,14 @@ class Blockchain:
 
     def update_batch(self , batch_id , stage , location = None , handler = None , 
                      quality = None , seal_id = None):
+
+        print("\nDEBUG Batch ID:", batch_id)
+
+        cursor.execute(
+        "SELECT batch_id FROM batches WHERE batch_id = ?",
+        (batch_id,))
+
+        print("DEBUG Database result:", cursor.fetchone())
 
         history = self.find_batch(batch_id)
 

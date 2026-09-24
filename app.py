@@ -4,6 +4,8 @@ import tkinter as tk
 from tkinter import messagebox
 from honey_chain import honey_chain
 
+
+# Register batch window
 def register_batch_window():
 
     window = tk.Toplevel(root)
