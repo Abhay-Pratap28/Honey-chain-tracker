@@ -63,7 +63,7 @@ def register_batch_window():
             f"Batch {batch_id} registered successfully"
         )
 
-        window.destroy
+        window.destroy()
 
     tk.Button(
         window,
@@ -79,7 +79,7 @@ def update_batch_window():
 
     window = tk.Toplevel(root)
     window.title("Update Honey Batch")
-    window.geometry("550x500")
+    window.geometry("550x550")
 
     tk.Label(
         window,
@@ -127,9 +127,13 @@ def update_batch_window():
     handler_entry = tk.Entry(window, width=35)
     handler_entry.pack(pady=5)
 
+    # Container for optional fields
+    optional_frame = tk.Frame(window)
+    optional_frame.pack(pady=5)
+
     # These frames will appear only when required
-    quality_frame = tk.Frame(window)
-    seal_frame = tk.Frame(window)
+    quality_frame = tk.Frame(optional_frame)
+    seal_frame = tk.Frame(optional_frame)
 
     # Quality
     quality_label = tk.Label(
@@ -162,7 +166,7 @@ def update_batch_window():
         # Processed → show Quality/Test
         if stage_var.get() == "processed":
 
-            quality_frame.pack(pady=10)
+            quality_frame.pack(pady=5)
 
             quality_label.pack()
             quality_entry.pack(pady=5)
@@ -170,7 +174,7 @@ def update_batch_window():
         # Packaged → show Seal ID
         elif stage_var.get() == "packaged":
 
-            seal_frame.pack(pady=10)
+            seal_frame.pack(pady=5)
 
             seal_label.pack()
             seal_entry.pack(pady=5)
@@ -387,7 +391,7 @@ def verify_batch_window():
                 "----------------------------\n"
             )
 
-        status = honey_chain.is_valid()
+        status = honey_chain.is_valid(batch_id)
 
         result_box.insert(
             tk.END,

@@ -7,6 +7,7 @@ from datetime import datetime
 import qrcode
 import sqlite3
 
+
 conn =sqlite3.connect("honey_chain_database.db")
 cursor  = conn.cursor()
 
@@ -90,61 +91,68 @@ class Blockchain:
 
         self.chain.append(new_block)
 
-    def find_batch(self , batch_id):
+    def find_batch(self, batch_id):
 
-       cursor.execute(""" SELECT batch_id , beekeeper, location , quantity
-        from BATCHES WHERE batch_id = ?
-        """,(batch_id,))
+        cursor.execute("""
+            SELECT batch_id, beekeeper, location, quantity
+            FROM batches
+            WHERE batch_id = ?
+        """, (batch_id,))
 
-       batch = cursor.fetchone()
+        batch = cursor.fetchone()
 
-       if not batch :
-           return []
+        if not batch:
+            return []
 
-       harvested_data = {
-           "batch_id" : batch[0],
-           "stage" : "harvested",
-           "beekeeper" : batch[1],
-           "location" : batch[2],
-           "quantity" : batch[3]
-       }
+        cursor.execute("""
+            SELECT stage, location, handler, quality, seal_id,
+                timestamp, prevhash, hash, block_index
+            FROM blockchain_record
+            WHERE batch_id = ?
+            ORDER BY block_index
+        """, (batch_id,))
 
-       history = []
+        records = cursor.fetchall()
 
-       harvested_block = Block(
-           1 , harvested_data , "0"
-       )
+        history = []
 
-       history.append(harvested_block)
+        for record in records:
 
-       cursor.execute("""
-        Select stage , location , handler , quality , seal_id,
-        timestamp , prevhash , hash , block_index
-        from blockchain_record 
-        where batch_id = ?""",(batch_id,))
+            stage = record[0]
 
-       records = cursor.fetchall()
+            if stage == "harvested":
 
-       for index, record in enumerate(records, start=2):
-            
-           
-            data = { "batch_id": batch_id, 
-                   "stage": record[0], 
-                   "location": record[1], 
-                   "handler": record[2], 
-                   "quality": record[3], 
-                   "seal_id": record[4] 
-                   }
+                data = {
+                    "batch_id": batch[0],
+                    "stage": "harvested",
+                    "beekeeper": batch[1],
+                    "location": batch[2],
+                    "quantity": batch[3]
+                }
+
+            else:
+
+                data = {
+                    "batch_id": batch_id,
+                    "stage": stage,
+                    "location": record[1],
+                    "handler": record[2],
+                    "quality": record[3],
+                    "seal_id": record[4]
+                }
 
             block = Block(
-               record[8] , data , record[6]
-           )
+                record[8],
+                data,
+                record[6]
+            )
 
             block.timestamp = record[5]
-            block.hash = record[7] 
-            history.append(block) 
+            block.hash = record[7]
 
-       return history
+            history.append(block)
+
+        return history
 
 
     def register_batch(self , batch_id , beekeeper , location , quantity ):
@@ -193,18 +201,24 @@ class Blockchain:
 
         print("\nBatch registered succesfully")
 
-    def update_batch(self , batch_id , stage , location = None , handler = None , 
-                     quality = None , seal_id = None):
+    def update_batch(self, batch_id, stage, location=None, handler=None,
+                 quality=None, seal_id=None):
 
-        history = self.find_batch(batch_id)
+        history = self.load_batch_from_database(batch_id)
 
-        if not history :
-            print("Batch not found !")
+        if not history:
+            print("Batch not found!")
             return
 
         current_stage = history[-1].data["stage"]
 
-        stages = ["harvested", "extracted", "processed", "packaged", "dispatched"]
+        stages = [
+            "harvested",
+            "extracted",
+            "processed",
+            "packaged",
+            "dispatched"
+        ]
 
         stage = stage.lower()
 
@@ -214,10 +228,9 @@ class Blockchain:
             return
 
         current_index = stages.index(current_stage.lower())
-
         new_index = stages.index(stage)
 
-        if (new_index <= current_index):
+        if new_index <= current_index:
             print("\nInvalid stage transition!")
             print("Current stage:", current_stage)
             print("Cannot move to:", stage)
@@ -228,24 +241,45 @@ class Blockchain:
             print("Next allowed stage:", stages[current_index + 1])
             return
 
-        data={
-            "batch_id" : batch_id,
-            "stage"    : stage,
-            "location" : location , 
-            "handler"  : handler ,
-            "quality"  : quality , 
-            "seal_id"  : seal_id
-            }
+        data = {
+            "batch_id": batch_id,
+            "stage": stage,
+            "location": location,
+            "handler": handler,
+            "quality": quality,
+            "seal_id": seal_id
+        }
 
+        # Get the LAST block from the database
+        previous_block = history[-1]
 
-        self.add_block(data) 
+        # Correct block index
+        new_index = previous_block.index + 1
 
-        block = self.chain[-1]
+        # Correct previous hash
+        previous_hash = previous_block.hash
+
+        # Create new block using database history
+        block = Block(
+            new_index,
+            data,
+            previous_hash
+        )
 
         cursor.execute("""
-        INSERT INTO blockchain_record (batch_id, stage, location, handler, quality, seal_id,
-        timestamp, prevhash, hash , block_index)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ? , ?)
+            INSERT INTO blockchain_record (
+                batch_id,
+                stage,
+                location,
+                handler,
+                quality,
+                seal_id,
+                timestamp,
+                prevhash,
+                hash,
+                block_index
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             batch_id,
             stage,
@@ -261,10 +295,11 @@ class Blockchain:
 
         conn.commit()
 
-        print("\nBatch updated succesfully")
+        print("\nBatch updated successfully")
 
         generate_qr(batch_id)
 
+    
     def load_batch_from_database(self, batch_id):
 
         cursor.execute("""
