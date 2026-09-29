@@ -1,15 +1,15 @@
-
-# HONEY CHAIN - FINAL GUI
-# Digital Honey Traceability System
+# FINAL GUI - HONEY CHAIN
 
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import messagebox, simpledialog
+import sqlite3
+
 from honey_chain import honey_chain
 
 
-# =========================================================
+# ============================================================
 # COLORS
-# =========================================================
+# ============================================================
 
 BG = "#F7F3EA"
 CARD = "#FFFFFF"
@@ -25,19 +25,28 @@ MUTED = "#777777"
 BORDER = "#E0D6C5"
 
 
-# =========================================================
-# COMMON FUNCTIONS
-# =========================================================
+# ============================================================
+# DATABASE
+# ============================================================
+
+DATABASE = "honey_chain_database.db"
+
+
+# ============================================================
+# HELPER FUNCTIONS
+# ============================================================
 
 def style_entry(entry):
     entry.configure(
         font=("Segoe UI", 11),
+        bg="white",
+        fg=TEXT,
         relief="solid",
         bd=1
     )
 
 
-def make_label(parent, text, size=11, bold=False, color=TEXT):
+def make_label(parent, text, size=10, bold=False, color=TEXT):
     return tk.Label(
         parent,
         text=text,
@@ -47,86 +56,93 @@ def make_label(parent, text, size=11, bold=False, color=TEXT):
     )
 
 
-def create_button(parent, text, command, width=20):
+def create_button(parent, text, command, bg_color=HONEY):
     return tk.Button(
         parent,
         text=text,
         command=command,
-        width=width,
-        height=2,
-        font=("Segoe UI", 10, "bold"),
-        bg=HONEY,
+        font=("Segoe UI", 11, "bold"),
+        bg=bg_color,
         fg="white",
-        activebackground="#B57C00",
+        activebackground=bg_color,
         activeforeground="white",
         relief="flat",
         cursor="hand2",
-        bd=0
+        width=20,
+        height=2
     )
 
 
-# =========================================================
-# REGISTER BATCH
-# =========================================================
+# ============================================================
+# REGISTER BATCH WINDOW
+# ============================================================
 
 def register_batch_window():
 
     window = tk.Toplevel(root)
     window.title("Register New Honey Batch")
-    window.geometry("520x560")
+    window.geometry("500x450")
     window.configure(bg=BG)
-    window.resizable(False, False)
+
+    tk.Label(
+        window,
+        text="🐝 REGISTER NEW HONEY BATCH",
+        font=("Segoe UI", 18, "bold"),
+        bg=DARK,
+        fg="white",
+        pady=15
+    ).pack(fill="x")
+
+    form = tk.Frame(window, bg=BG)
+    form.pack(pady=25)
 
     make_label(
-        window,
-        "🍯  REGISTER NEW BATCH",
-        20,
-        True,
-        DARK
-    ).pack(pady=(25, 5))
-
-    make_label(
-        window,
-        "Create a new traceable honey batch",
+        form,
+        "Batch ID",
         10,
-        False,
-        MUTED
-    ).pack(pady=(0, 20))
+        True
+    ).grid(row=0, column=0, sticky="w", pady=8)
 
-    form = tk.Frame(window, bg=CARD, padx=30, pady=25)
-    form.pack(padx=30, fill="x")
+    batch_entry = tk.Entry(form, width=32)
+    style_entry(batch_entry)
+    batch_entry.grid(row=0, column=1, pady=8, padx=10)
 
-    # Batch ID
-    make_label(form, "Batch ID", 10, True).pack(anchor="w")
+    make_label(
+        form,
+        "Beekeeper / Farm Name",
+        10,
+        True
+    ).grid(row=1, column=0, sticky="w", pady=8)
 
-    batch_id_entry = tk.Entry(form, width=42)
-    style_entry(batch_id_entry)
-    batch_id_entry.pack(pady=(5, 15), ipady=5)
-
-    # Beekeeper
-    make_label(form, "Beekeeper / Farm Name", 10, True).pack(anchor="w")
-
-    beekeeper_entry = tk.Entry(form, width=42)
+    beekeeper_entry = tk.Entry(form, width=32)
     style_entry(beekeeper_entry)
-    beekeeper_entry.pack(pady=(5, 15), ipady=5)
+    beekeeper_entry.grid(row=1, column=1, pady=8, padx=10)
 
-    # Location
-    make_label(form, "Harvest Location", 10, True).pack(anchor="w")
+    make_label(
+        form,
+        "Harvest Location",
+        10,
+        True
+    ).grid(row=2, column=0, sticky="w", pady=8)
 
-    location_entry = tk.Entry(form, width=42)
+    location_entry = tk.Entry(form, width=32)
     style_entry(location_entry)
-    location_entry.pack(pady=(5, 15), ipady=5)
+    location_entry.grid(row=2, column=1, pady=8, padx=10)
 
-    # Quantity
-    make_label(form, "Quantity", 10, True).pack(anchor="w")
+    make_label(
+        form,
+        "Quantity",
+        10,
+        True
+    ).grid(row=3, column=0, sticky="w", pady=8)
 
-    quantity_entry = tk.Entry(form, width=42)
+    quantity_entry = tk.Entry(form, width=32)
     style_entry(quantity_entry)
-    quantity_entry.pack(pady=(5, 20), ipady=5)
+    quantity_entry.grid(row=3, column=1, pady=8, padx=10)
 
     def register():
 
-        batch_id = batch_id_entry.get().strip()
+        batch_id = batch_entry.get().strip()
         beekeeper = beekeeper_entry.get().strip()
         location = location_entry.get().strip()
         quantity = quantity_entry.get().strip()
@@ -139,186 +155,269 @@ def register_batch_window():
             return
 
         if honey_chain.find_batch(batch_id):
-            messagebox.showwarning(
+            messagebox.showerror(
                 "Duplicate Batch",
-                "This batch already exists."
+                "This Batch ID already exists."
             )
             return
 
-        honey_chain.register_batch(
-            batch_id,
-            beekeeper,
-            location,
-            quantity
-        )
+        try:
 
-        messagebox.showinfo(
-            "Batch Registered",
-            f"Batch {batch_id} has been successfully registered."
-        )
+            honey_chain.register_batch(
+                batch_id,
+                beekeeper,
+                location,
+                quantity
+            )
 
-        window.destroy()
+            messagebox.showinfo(
+                "Success",
+                f"Batch {batch_id} registered successfully."
+            )
+
+            window.destroy()
+
+        except Exception as e:
+
+            messagebox.showerror(
+                "Error",
+                f"Unable to register batch.\n\n{e}"
+            )
 
     create_button(
         window,
         "REGISTER BATCH",
         register,
-        25
-    ).pack(pady=25)
+        GREEN
+    ).pack(pady=15)
 
 
-# =========================================================
-# UPDATE BATCH
-# =========================================================
+# ============================================================
+# UPDATE BATCH WINDOW
+# ============================================================
+
+# ============================================================
+# UPDATE BATCH WINDOW
+# ============================================================
 
 def update_batch_window():
 
     window = tk.Toplevel(root)
     window.title("Update Honey Batch")
-    window.geometry("560x650")
+    window.geometry("520x500")
     window.configure(bg=BG)
-    window.resizable(False, False)
+
+    tk.Label(
+        window,
+        text="🔄 UPDATE HONEY BATCH",
+        font=("Segoe UI", 18, "bold"),
+        bg=DARK,
+        fg="white",
+        pady=15
+    ).pack(fill="x")
+
+    form = tk.Frame(window, bg=BG)
+    form.pack(pady=20)
+
+    # --------------------------------------------------------
+    # BATCH ID
+    # --------------------------------------------------------
 
     make_label(
-        window,
-        "🔄  UPDATE BATCH",
-        20,
-        True,
-        DARK
-    ).pack(pady=(25, 5))
-
-    make_label(
-        window,
-        "Move the batch to its next supply-chain stage",
+        form,
+        "Batch ID",
         10,
-        False,
-        MUTED
-    ).pack(pady=(0, 20))
+        True
+    ).grid(row=0, column=0, sticky="w", pady=8)
 
-    form = tk.Frame(window, bg=CARD, padx=30, pady=20)
-    form.pack(padx=30, fill="x")
+    batch_entry = tk.Entry(form, width=32)
+    style_entry(batch_entry)
+    batch_entry.grid(
+        row=0,
+        column=1,
+        padx=10,
+        pady=8
+    )
 
-    # Batch ID
-    make_label(form, "Batch ID", 10, True).pack(anchor="w")
+    # --------------------------------------------------------
+    # STAGE
+    # --------------------------------------------------------
 
-    batch_id_entry = tk.Entry(form, width=45)
-    style_entry(batch_id_entry)
-    batch_id_entry.pack(pady=(5, 15), ipady=5)
+    make_label(
+        form,
+        "Stage",
+        10,
+        True
+    ).grid(row=1, column=0, sticky="w", pady=8)
 
-    # Stage
-    make_label(form, "Next Supply Chain Stage", 10, True).pack(anchor="w")
-
-    stage_var = tk.StringVar()
-    stage_var.set("extracted")
-
-    stages = [
-        "extracted",
-        "processed",
-        "packaged",
-        "dispatched"
-    ]
+    stage_var = tk.StringVar(value="extracted")
 
     stage_menu = tk.OptionMenu(
         form,
         stage_var,
-        *stages
+        "extracted",
+        "processed",
+        "packaged",
+        "dispatched"
     )
 
     stage_menu.config(
-        width=35,
         font=("Segoe UI", 10),
         bg="white",
-        relief="solid",
-        bd=1
+        width=25,
+        relief="solid"
     )
 
-    stage_menu.pack(pady=(5, 15))
+    stage_menu.grid(
+        row=1,
+        column=1,
+        padx=10,
+        pady=8
+    )
 
-    # Location
-    make_label(form, "Current Location", 10, True).pack(anchor="w")
+    # --------------------------------------------------------
+    # LOCATION
+    # --------------------------------------------------------
 
-    location_entry = tk.Entry(form, width=45)
+    make_label(
+        form,
+        "Location",
+        10,
+        True
+    ).grid(row=2, column=0, sticky="w", pady=8)
+
+    location_entry = tk.Entry(form, width=32)
     style_entry(location_entry)
-    location_entry.pack(pady=(5, 15), ipady=5)
+    location_entry.grid(
+        row=2,
+        column=1,
+        padx=10,
+        pady=8
+    )
 
-    # Handler
-    make_label(form, "Handler / Unit Name", 10, True).pack(anchor="w")
+    # --------------------------------------------------------
+    # HANDLER
+    # --------------------------------------------------------
 
-    handler_entry = tk.Entry(form, width=45)
+    make_label(
+        form,
+        "Handler",
+        10,
+        True
+    ).grid(row=3, column=0, sticky="w", pady=8)
+
+    handler_entry = tk.Entry(form, width=32)
     style_entry(handler_entry)
-    handler_entry.pack(pady=(5, 15), ipady=5)
-
-    optional_frame = tk.Frame(form, bg=CARD)
-    optional_frame.pack(fill="x")
-
-    quality_frame = tk.Frame(
-        optional_frame,
-        bg=CARD
+    handler_entry.grid(
+        row=3,
+        column=1,
+        padx=10,
+        pady=8
     )
 
-    seal_frame = tk.Frame(
-        optional_frame,
-        bg=CARD
-    )
+    # --------------------------------------------------------
+    # QUALITY - ONLY FOR PROCESSED
+    # --------------------------------------------------------
 
-    quality_label = tk.Label(
-        quality_frame,
-        text="Quality / Test Status",
-        font=("Segoe UI", 10, "bold"),
-        bg=CARD,
-        fg=TEXT
+    quality_label = make_label(
+        form,
+        "Quality",
+        10,
+        True
     )
 
     quality_entry = tk.Entry(
-        quality_frame,
-        width=45
+        form,
+        width=32
     )
+
     style_entry(quality_entry)
 
-    seal_label = tk.Label(
-        seal_frame,
-        text="Seal ID",
-        font=("Segoe UI", 10, "bold"),
-        bg=CARD,
-        fg=TEXT
+    # --------------------------------------------------------
+    # SEAL ID - ONLY FOR PACKAGED
+    # --------------------------------------------------------
+
+    seal_label = make_label(
+        form,
+        "Seal ID",
+        10,
+        True
     )
 
     seal_entry = tk.Entry(
-        seal_frame,
-        width=45
+        form,
+        width=32
     )
+
     style_entry(seal_entry)
 
-    def change_stage(*args):
+    # --------------------------------------------------------
+    # SHOW/HIDE STAGE-SPECIFIC FIELDS
+    # --------------------------------------------------------
 
-        quality_frame.pack_forget()
-        seal_frame.pack_forget()
+    def update_fields(*args):
 
+        # Hide both fields first
+        quality_label.grid_remove()
+        quality_entry.grid_remove()
+
+        seal_label.grid_remove()
+        seal_entry.grid_remove()
+
+        # Processed → Quality
         if stage_var.get() == "processed":
 
-            quality_frame.pack(fill="x", pady=5)
+            quality_label.grid(
+                row=4,
+                column=0,
+                sticky="w",
+                pady=8
+            )
 
-            quality_label.pack(anchor="w")
-            quality_entry.pack(pady=(5, 10), ipady=5)
+            quality_entry.grid(
+                row=4,
+                column=1,
+                padx=10,
+                pady=8
+            )
 
+        # Packaged → Seal ID
         elif stage_var.get() == "packaged":
 
-            seal_frame.pack(fill="x", pady=5)
+            seal_label.grid(
+                row=4,
+                column=0,
+                sticky="w",
+                pady=8
+            )
 
-            seal_label.pack(anchor="w")
-            seal_entry.pack(pady=(5, 10), ipady=5)
+            seal_entry.grid(
+                row=4,
+                column=1,
+                padx=10,
+                pady=8
+            )
 
-    stage_var.trace_add("write", change_stage)
+    stage_var.trace_add(
+        "write",
+        update_fields
+    )
+
+    # Set initial state
+    update_fields()
+
+    # --------------------------------------------------------
+    # UPDATE FUNCTION
+    # --------------------------------------------------------
 
     def update():
 
-        batch_id = batch_id_entry.get().strip()
-        stage = stage_var.get().strip()
+        batch_id = batch_entry.get().strip()
+        stage = stage_var.get()
         location = location_entry.get().strip()
         handler = handler_entry.get().strip()
-
-        quality = None
-        seal_id = None
+        quality = quality_entry.get().strip()
+        seal_id = seal_entry.get().strip()
 
         if not batch_id:
 
@@ -326,171 +425,184 @@ def update_batch_window():
                 "Missing Batch ID",
                 "Please enter Batch ID."
             )
+
             return
-
-        if not location:
-
-            messagebox.showwarning(
-                "Missing Location",
-                "Please enter the current location."
-            )
-            return
-
-        if not handler:
-
-            messagebox.showwarning(
-                "Missing Handler",
-                "Please enter the handler/unit name."
-            )
-            return
-
-        if stage == "processed":
-
-            quality = quality_entry.get().strip()
-
-            if not quality:
-                messagebox.showwarning(
-                    "Missing Information",
-                    "Please enter Quality / Test Status."
-                )
-                return
-
-        if stage == "packaged":
-
-            seal_id = seal_entry.get().strip()
-
-            if not seal_id:
-                messagebox.showwarning(
-                    "Missing Information",
-                    "Please enter Seal ID."
-                )
-                return
 
         if not honey_chain.find_batch(batch_id):
 
             messagebox.showerror(
                 "Batch Not Found",
-                f"Batch {batch_id} does not exist."
+                "No batch exists with this Batch ID."
             )
+
             return
 
-        honey_chain.update_batch(
-            batch_id,
-            stage,
-            location,
-            handler,
-            quality,
-            seal_id
-        )
+        if not location or not handler:
 
-        messagebox.showinfo(
-            "Batch Updated",
-            f"Batch {batch_id} moved to {stage.upper()}.\n\n"
-            "A new QR code has been generated."
-        )
+            messagebox.showwarning(
+                "Missing Information",
+                "Location and Handler are required."
+            )
 
-        window.destroy()
+            return
+
+        # Quality required ONLY for processed
+        if stage == "processed" and not quality:
+
+            messagebox.showwarning(
+                "Missing Quality",
+                "Please enter quality information."
+            )
+
+            return
+
+        # Seal ID required ONLY for packaged
+        if stage == "packaged" and not seal_id:
+
+            messagebox.showwarning(
+                "Missing Seal ID",
+                "Please enter Seal ID."
+            )
+
+            return
+
+        try:
+
+            honey_chain.update_batch(
+                batch_id,
+                stage,
+                location,
+                handler,
+                quality,
+                seal_id
+            )
+
+            messagebox.showinfo(
+                "Success",
+                "Batch updated successfully.\n\n"
+                "A new blockchain block and QR code have been generated."
+            )
+
+            window.destroy()
+
+        except Exception as e:
+
+            messagebox.showerror(
+                "Error",
+                f"Unable to update batch.\n\n{e}"
+            )
+
+    # --------------------------------------------------------
+    # UPDATE BUTTON
+    # --------------------------------------------------------
 
     create_button(
         window,
         "UPDATE BATCH",
         update,
-        28
-    ).pack(pady=25)
-
-
-# =========================================================
-# VERIFY BATCH
-# =========================================================
+        HONEY
+    ).pack(pady=15)
 
 def verify_batch_window():
 
     window = tk.Toplevel(root)
     window.title("Verify Honey Batch")
-    window.geometry("780x680")
+    window.geometry("700x600")
     window.configure(bg=BG)
 
-    make_label(
+    tk.Label(
         window,
-        "✓  VERIFY BATCH",
-        20,
-        True,
-        DARK
-    ).pack(pady=(25, 5))
-
-    make_label(
-        window,
-        "Verify the integrity of the blockchain record",
-        10,
-        False,
-        MUTED
-    ).pack(pady=(0, 15))
-
-    top = tk.Frame(window, bg=CARD, padx=25, pady=15)
-    top.pack(padx=30, fill="x")
-
-    make_label(
-        top,
-        "Enter Batch ID",
-        10,
-        True
-    ).pack(side="left")
-
-    batch_id_entry = tk.Entry(top, width=30)
-    style_entry(batch_id_entry)
-    batch_id_entry.pack(
-        side="left",
-        padx=15,
-        ipady=5
-    )
-
-    result_frame = tk.Frame(window, bg=CARD)
-    result_box = tk.Text(
-        result_frame,
-        width=85,
-        height=29,
-        font=("Consolas", 10),
-        bg="#FAFAFA",
-        fg=TEXT,
-        relief="flat",
-        padx=15,
+        text="✓ VERIFY HONEY BATCH",
+        font=("Segoe UI", 18, "bold"),
+        bg=DARK,
+        fg="white",
         pady=15
+    ).pack(fill="x")
+
+    input_frame = tk.Frame(
+        window,
+        bg=BG
     )
 
-    scrollbar = tk.Scrollbar(
-        result_frame,
-        command=result_box.yview
+    input_frame.pack(
+        pady=20
     )
 
-    result_box.configure(
-        yscrollcommand=scrollbar.set
+    tk.Label(
+        input_frame,
+        text="Batch ID:",
+        font=("Segoe UI", 11, "bold"),
+        bg=BG,
+        fg=TEXT
+    ).pack(
+        side="left",
+        padx=5
     )
+
+    batch_entry = tk.Entry(
+        input_frame,
+        font=("Segoe UI", 11),
+        width=25
+    )
+
+    batch_entry.pack(
+        side="left",
+        padx=5
+    )
+
+    # Result frame is NOT created initially.
+    # It will appear only after verification.
 
     def verify():
 
-        batch_id = batch_id_entry.get().strip()
+        batch_id = batch_entry.get().strip()
 
         if not batch_id:
+
             messagebox.showwarning(
                 "Missing Batch ID",
                 "Please enter Batch ID."
             )
+
             return
 
-        history = honey_chain.find_batch(batch_id)
+        if not honey_chain.find_batch(batch_id):
 
-        if not history:
             messagebox.showerror(
                 "Batch Not Found",
-                f"Batch {batch_id} does not exist."
+                "No batch exists with this Batch ID."
             )
+
             return
 
+        # Remove old result area if it exists
+        for widget in window.winfo_children():
+
+            if getattr(widget, "is_result_frame", False):
+                widget.destroy()
+
+        result_frame = tk.Frame(
+            window,
+            bg=BG
+        )
+
+        result_frame.is_result_frame = True
+
         result_frame.pack(
-            padx=30,
-            pady=15,
             fill="both",
-            expand=True
+            expand=True,
+            padx=20,
+            pady=(0, 15)
+        )
+
+        result_box = tk.Text(
+            result_frame,
+            font=("Consolas", 10),
+            bg="white",
+            fg=TEXT,
+            relief="solid",
+            bd=1,
+            wrap="word"
         )
 
         result_box.pack(
@@ -499,90 +611,63 @@ def verify_batch_window():
             expand=True
         )
 
+        scrollbar = tk.Scrollbar(
+            result_frame,
+            command=result_box.yview
+        )
+
         scrollbar.pack(
             side="right",
             fill="y"
         )
 
-        result_box.delete("1.0", tk.END)
-
-        first_record = history[0].data
-
-        result_box.insert(
-            tk.END,
-            "🍯  HONEY CHAIN - VERIFICATION REPORT\n"
+        result_box.config(
+            yscrollcommand=scrollbar.set
         )
 
-        result_box.insert(
-            tk.END,
-            "=" * 65 + "\n\n"
-        )
+        try:
 
-        result_box.insert(
-            tk.END,
-            f"Batch ID       : {first_record['batch_id']}\n"
-        )
-
-        result_box.insert(
-            tk.END,
-            f"Beekeeper      : {first_record['beekeeper']}\n"
-        )
-
-        result_box.insert(
-            tk.END,
-            f"Quantity       : {first_record['quantity']}\n"
-        )
-
-        result_box.insert(
-            tk.END,
-            f"Harvest Site   : {first_record['location']}\n\n"
-        )
-
-        result_box.insert(
-            tk.END,
-            "SUPPLY CHAIN JOURNEY\n"
-        )
-
-        result_box.insert(
-            tk.END,
-            "-" * 65 + "\n"
-        )
-
-        for number, block in enumerate(history, start=1):
-
-            data = block.data
+            data = honey_chain.find_batch(batch_id)
 
             result_box.insert(
                 tk.END,
-                f"\nSTEP {number}  |  {data.get('stage', '').upper()}\n"
+                "HONEY BATCH DETAILS\n"
             )
 
             result_box.insert(
                 tk.END,
-                f"Location : {data.get('location', '')}\n"
+                "=" * 65 + "\n\n"
             )
 
-            if data.get("handler"):
+            if isinstance(data, dict):
+
                 result_box.insert(
                     tk.END,
-                    f"Handler  : {data.get('handler')}\n"
+                    f"Batch ID     : {data.get('batch_id', batch_id)}\n"
                 )
 
-            if data.get("quality"):
                 result_box.insert(
                     tk.END,
-                    f"Quality  : {data.get('quality')}\n"
+                    f"Beekeeper    : {data.get('beekeeper', 'N/A')}\n"
                 )
 
-            if data.get("seal_id"):
                 result_box.insert(
                     tk.END,
-                    f"Seal ID  : {data.get('seal_id')}\n"
+                    f"Location     : {data.get('location', 'N/A')}\n"
                 )
+
+                result_box.insert(
+                    tk.END,
+                    f"Quantity     : {data.get('quantity', 'N/A')}\n\n"
+                )
+
+            history = honey_chain.load_batch_from_database(
+                batch_id
+            )
 
             result_box.insert(
                 tk.END,
-                f"Time     : {block.timestamp}\n"
+                "SUPPLY CHAIN JOURNEY\n"
             )
 
             result_box.insert(
@@ -590,137 +675,159 @@ def verify_batch_window():
                 "-" * 65 + "\n"
             )
 
-        status = honey_chain.is_valid(batch_id)
+            for block in history:
 
-        result_box.insert(
-            tk.END,
-            "\n"
-        )
+                stage = block.data.get(
+                    "stage",
+                    "N/A"
+                )
 
-        if status:
+                location = block.data.get(
+                    "location",
+                    "N/A"
+                )
 
-            result_box.insert(
-                tk.END,
-                "  ✓ BLOCKCHAIN STATUS: VALID\n"
+                handler = block.data.get(
+                    "handler",
+                    "N/A"
+                )
+
+                result_box.insert(
+                    tk.END,
+                    f"Block {block.index} → "
+                    f"{stage.upper()}\n"
+                )
+
+                result_box.insert(
+                    tk.END,
+                    f"  Location : {location}\n"
+                )
+
+                if stage != "harvested":
+
+                    result_box.insert(
+                        tk.END,
+                        f"  Handler  : {handler}\n"
+                    )
+
+                result_box.insert(
+                    tk.END,
+                    "\n"
+                )
+
+            valid = honey_chain.is_valid(
+                batch_id
             )
 
             result_box.insert(
                 tk.END,
-                "  The recorded journey has not been altered.\n"
+                "=" * 65 + "\n"
             )
 
-        else:
+            if valid:
 
-            result_box.insert(
-                tk.END,
-                "  ⚠ BLOCKCHAIN STATUS: TAMPERED\n"
+                result_box.insert(
+                    tk.END,
+                    "\n✓ BLOCKCHAIN STATUS: VALID\n"
+                )
+
+                result_box.insert(
+                    tk.END,
+                    "The batch history is authentic and has "
+                    "not been tampered with.\n"
+                )
+
+            else:
+
+                result_box.insert(
+                    tk.END,
+                    "\n⚠ BLOCKCHAIN STATUS: TAMPERED\n"
+                )
+
+                result_box.insert(
+                    tk.END,
+                    "Possible data tampering detected.\n"
+                )
+
+        except Exception as e:
+
+            messagebox.showerror(
+                "Error",
+                f"Unable to verify batch.\n\n{e}"
             )
 
-            result_box.insert(
-                tk.END,
-                "  The stored record does not match its blockchain hash.\n"
-            )
-
-    create_button(
-        top,
-        "VERIFY",
-        verify,
-        12
-    ).pack(side="left")
-
-    window.bind(
-        "<Return>",
-        lambda event: verify()
+    tk.Button(
+        input_frame,
+        text="VERIFY",
+        command=verify,
+        font=("Segoe UI", 10, "bold"),
+        bg=GREEN,
+        fg="white",
+        activebackground="#1B5E20",
+        activeforeground="white",
+        relief="flat",
+        cursor="hand2",
+        width=12
+    ).pack(
+        side="left",
+        padx=10
     )
 
 
-# =========================================================
-# TRACK BATCH
-# =========================================================
+# ============================================================
+# TRACK BATCH WINDOW
+# ============================================================
 
 def track_batch_window():
 
     window = tk.Toplevel(root)
     window.title("Track Honey Batch")
-    window.geometry("780x680")
+    window.geometry("700x600")
     window.configure(bg=BG)
 
-    make_label(
+    tk.Label(
         window,
-        "📍  TRACK BATCH",
-        20,
-        True,
-        DARK
-    ).pack(pady=(25, 5))
-
-    make_label(
-        window,
-        "View the complete journey of a honey batch",
-        10,
-        False,
-        MUTED
-    ).pack(pady=(0, 15))
-
-    top = tk.Frame(
-        window,
-        bg=CARD,
-        padx=25,
+        text="📦 TRACK HONEY BATCH",
+        font=("Segoe UI", 18, "bold"),
+        bg=DARK,
+        fg="white",
         pady=15
-    )
-    top.pack(
-        padx=30,
-        fill="x"
-    )
+    ).pack(fill="x")
 
-    make_label(
-        top,
-        "Enter Batch ID",
-        10,
-        True
-    ).pack(side="left")
-
-    batch_id_entry = tk.Entry(
-        top,
-        width=30
+    input_frame = tk.Frame(
+        window,
+        bg=BG
     )
 
-    style_entry(batch_id_entry)
+    input_frame.pack(
+        pady=20
+    )
 
-    batch_id_entry.pack(
+    tk.Label(
+        input_frame,
+        text="Batch ID:",
+        font=("Segoe UI", 11, "bold"),
+        bg=BG,
+        fg=TEXT
+    ).pack(
         side="left",
-        padx=15,
-        ipady=5
+        padx=5
     )
 
-    result_frame = tk.Frame(
-        window,
-        bg=CARD
+    batch_entry = tk.Entry(
+        input_frame,
+        font=("Segoe UI", 11),
+        width=25
     )
 
-    result_box = tk.Text(
-        result_frame,
-        width=85,
-        height=29,
-        font=("Consolas", 10),
-        bg="#FAFAFA",
-        fg=TEXT,
-        relief="flat",
-        padx=15,
-        pady=15
-    )
-
-    scrollbar = tk.Scrollbar(
-        result_frame,
-        command=result_box.yview
-    )
-
-    result_box.configure(
-        yscrollcommand=scrollbar.set
+    batch_entry.pack(
+        side="left",
+        padx=5
     )
 
     def track():
 
-        batch_id = batch_id_entry.get().strip()
+        batch_id = batch_entry.get().strip()
 
         if not batch_id:
 
@@ -728,23 +835,46 @@ def track_batch_window():
                 "Missing Batch ID",
                 "Please enter Batch ID."
             )
+
             return
 
-        history = honey_chain.find_batch(batch_id)
-
-        if not history:
+        if not honey_chain.find_batch(batch_id):
 
             messagebox.showerror(
                 "Batch Not Found",
-                f"Batch {batch_id} does not exist."
+                "No batch exists with this Batch ID."
             )
+
             return
 
+        # Remove old result area
+        for widget in window.winfo_children():
+
+            if getattr(widget, "is_result_frame", False):
+                widget.destroy()
+
+        result_frame = tk.Frame(
+            window,
+            bg=BG
+        )
+
+        result_frame.is_result_frame = True
+
         result_frame.pack(
-            padx=30,
-            pady=15,
             fill="both",
-            expand=True
+            expand=True,
+            padx=20,
+            pady=(0, 15)
+        )
+
+        result_box = tk.Text(
+            result_frame,
+            font=("Consolas", 10),
+            bg="white",
+            fg=TEXT,
+            relief="solid",
+            bd=1,
+            wrap="word"
         )
 
         result_box.pack(
@@ -753,140 +883,488 @@ def track_batch_window():
             expand=True
         )
 
+        scrollbar = tk.Scrollbar(
+            result_frame,
+            command=result_box.yview
+        )
+
         scrollbar.pack(
             side="right",
             fill="y"
         )
 
-        result_box.delete(
-            "1.0",
-            tk.END
+        result_box.config(
+            yscrollcommand=scrollbar.set
         )
 
-        first_record = history[0].data
-        current_stage = history[-1].data.get(
-            "stage",
-            "harvested"
-        )
+        try:
 
-        result_box.insert(
-            tk.END,
-            "🍯  HONEY BATCH JOURNEY\n"
-        )
+            data = honey_chain.find_batch(batch_id)
 
-        result_box.insert(
-            tk.END,
-            "=" * 65 + "\n\n"
-        )
-
-        result_box.insert(
-            tk.END,
-            f"CURRENT STAGE : {current_stage.upper()}\n\n"
-        )
-
-        result_box.insert(
-            tk.END,
-            f"Batch ID       : {first_record['batch_id']}\n"
-        )
-
-        result_box.insert(
-            tk.END,
-            f"Beekeeper      : {first_record['beekeeper']}\n"
-        )
-
-        result_box.insert(
-            tk.END,
-            f"Quantity       : {first_record['quantity']}\n"
-        )
-
-        result_box.insert(
-            tk.END,
-            f"Harvest Site   : {first_record['location']}\n\n"
-        )
-
-        result_box.insert(
-            tk.END,
-            "SUPPLY CHAIN JOURNEY\n"
-        )
-
-        result_box.insert(
-            tk.END,
-            "-" * 65 + "\n"
-        )
-
-        for number, block in enumerate(history, start=1):
-
-            data = block.data
-
-            result_box.insert(
-                tk.END,
-                f"\n[{number}]  {data.get('stage', '').upper()}\n"
+            history = honey_chain.load_batch_from_database(
+                batch_id
             )
 
             result_box.insert(
                 tk.END,
-                f"Location : {data.get('location', '')}\n"
+                "HONEY BATCH TRACKING\n"
             )
 
-            if data.get("handler"):
+            result_box.insert(
+                tk.END,
+                "=" * 65 + "\n\n"
+            )
+
+            if isinstance(data, dict):
+
                 result_box.insert(
                     tk.END,
-                    f"Handler  : {data.get('handler')}\n"
+                    f"Batch ID  : {data.get('batch_id', batch_id)}\n"
                 )
 
-            if data.get("quality"):
                 result_box.insert(
                     tk.END,
-                    f"Quality  : {data.get('quality')}\n"
+                    f"Beekeeper : {data.get('beekeeper', 'N/A')}\n"
                 )
 
-            if data.get("seal_id"):
                 result_box.insert(
                     tk.END,
-                    f"Seal ID  : {data.get('seal_id')}\n"
+                    f"Location  : {data.get('location', 'N/A')}\n"
+                )
+
+                result_box.insert(
+                    tk.END,
+                    f"Quantity  : {data.get('quantity', 'N/A')}\n\n"
+                )
+
+            if history:
+
+                current_stage = history[-1].data.get(
+                    "stage",
+                    "N/A"
+                )
+
+                result_box.insert(
+                    tk.END,
+                    f"CURRENT STAGE: {current_stage.upper()}\n\n"
                 )
 
             result_box.insert(
                 tk.END,
-                f"Time     : {block.timestamp}\n"
+                "SUPPLY CHAIN JOURNEY\n"
             )
 
             result_box.insert(
                 tk.END,
-                "\n" + "-" * 65 + "\n"
+                "-" * 65 + "\n"
             )
 
-    create_button(
-        top,
-        "TRACK",
-        track,
-        12
-    ).pack(side="left")
+            for block in history:
 
-    window.bind(
-        "<Return>",
-        lambda event: track()
+                stage = block.data.get(
+                    "stage",
+                    "N/A"
+                )
+
+                location = block.data.get(
+                    "location",
+                    "N/A"
+                )
+
+                handler = block.data.get(
+                    "handler",
+                    "N/A"
+                )
+
+                result_box.insert(
+                    tk.END,
+                    f"Block {block.index} → "
+                    f"{stage.upper()}\n"
+                )
+
+                result_box.insert(
+                    tk.END,
+                    f"  Location : {location}\n"
+                )
+
+                if stage != "harvested":
+
+                    result_box.insert(
+                        tk.END,
+                        f"  Handler  : {handler}\n"
+                    )
+
+                result_box.insert(
+                    tk.END,
+                    "\n"
+                )
+
+        except Exception as e:
+
+            messagebox.showerror(
+                "Error",
+                f"Unable to track batch.\n\n{e}"
+            )
+
+    tk.Button(
+        input_frame,
+        text="TRACK",
+        command=track,
+        font=("Segoe UI", 10, "bold"),
+        bg=HONEY,
+        fg="white",
+        activebackground="#B57C00",
+        activeforeground="white",
+        relief="flat",
+        cursor="hand2",
+        width=12
+    ).pack(
+        side="left",
+        padx=10
     )
 
 
-# =========================================================
+# ============================================================
+# VERIFY BLOCKCHAIN WINDOW
+# ============================================================
+
+# ============================================================
+# VERIFY BLOCKCHAIN WINDOW
+# ============================================================
+
+def verify_blockchain_window():
+
+    window = tk.Toplevel(root)
+    window.title("Blockchain Verification")
+    window.geometry("650x300")
+    window.configure(bg=BG)
+    window.resizable(False, False)
+
+    tk.Label(
+        window,
+        text="🔗 BLOCKCHAIN VERIFICATION",
+        font=("Segoe UI", 18, "bold"),
+        bg=DARK,
+        fg="white",
+        pady=15
+    ).pack(fill="x")
+
+    input_frame = tk.Frame(
+        window,
+        bg=BG
+    )
+
+    input_frame.pack(pady=25)
+
+    tk.Label(
+        input_frame,
+        text="Batch ID:",
+        font=("Segoe UI", 11, "bold"),
+        bg=BG,
+        fg=TEXT
+    ).pack(side="left", padx=5)
+
+    batch_entry = tk.Entry(
+        input_frame,
+        font=("Segoe UI", 11),
+        width=25
+    )
+
+    batch_entry.pack(side="left", padx=5)
+
+    def verify():
+
+        batch_id = batch_entry.get().strip()
+
+        if not batch_id:
+
+            messagebox.showwarning(
+                "Missing Batch ID",
+                "Please enter a Batch ID."
+            )
+
+            return
+
+        if not honey_chain.find_batch(batch_id):
+
+            messagebox.showerror(
+                "Batch Not Found",
+                "No batch exists with this Batch ID."
+            )
+
+            return
+
+        # Remove previous result
+        for widget in window.winfo_children():
+
+            if getattr(widget, "is_result_frame", False):
+                widget.destroy()
+
+        result_frame = tk.Frame(
+            window,
+            bg=CARD,
+            highlightbackground=BORDER,
+            highlightthickness=1
+        )
+
+        result_frame.is_result_frame = True
+
+        result_frame.pack(
+            fill="x",
+            padx=40,
+            pady=10
+        )
+
+        try:
+
+            valid = honey_chain.is_valid(batch_id)
+
+            if valid:
+
+                result_label = tk.Label(
+                    result_frame,
+                    text=(
+                        "✓ BLOCKCHAIN IS VALID\n\n"
+                        "No tampering detected."
+                    ),
+                    font=("Segoe UI", 15, "bold"),
+                    bg=GREEN_LIGHT,
+                    fg=GREEN,
+                    pady=25
+                )
+
+            else:
+
+                result_label = tk.Label(
+                    result_frame,
+                    text=(
+                        "⚠ BLOCKCHAIN IS TAMPERED\n\n"
+                        "Data modification detected."
+                    ),
+                    font=("Segoe UI", 15, "bold"),
+                    bg=RED_LIGHT,
+                    fg=RED,
+                    pady=25
+                )
+
+            result_label.pack(
+                fill="x",
+                padx=2,
+                pady=2
+            )
+
+        except Exception as e:
+
+            messagebox.showerror(
+                "Error",
+                f"Unable to verify blockchain.\n\n{e}"
+            )
+
+    tk.Button(
+        input_frame,
+        text="VERIFY",
+        command=verify,
+        font=("Segoe UI", 10, "bold"),
+        bg=GREEN,
+        fg="white",
+        activebackground="#1B5E20",
+        activeforeground="white",
+        relief="flat",
+        cursor="hand2",
+        width=12
+    ).pack(
+        side="left",
+        padx=10
+    )
+
+def alter_blockchain_window():
+    window = tk.Toplevel(root)
+    window.title("Alter Blockchain Data")
+    window.geometry("650x430")
+    window.configure(bg=BG)
+    window.resizable(False, False)
+
+    tk.Label(
+        window,
+        text="🔧 ALTER BLOCKCHAIN DATA",
+        font=("Arial", 20, "bold"),
+        bg=DARK,
+        fg="white",
+        pady=15
+    ).pack(fill="x")
+
+    form = tk.Frame(window, bg=BG)
+    form.pack(pady=30)
+
+    tk.Label(
+        form,
+        text="Batch ID",
+        font=("Arial", 12, "bold"),
+        bg=BG,
+        fg=TEXT
+    ).grid(row=0, column=0, padx=10, pady=10, sticky="w")
+
+    batch_entry = tk.Entry(
+        form,
+        font=("Arial", 12),
+        width=30
+    )
+    batch_entry.grid(row=0, column=1, padx=10, pady=10)
+
+    tk.Label(
+        form,
+        text="New Quantity",
+        font=("Arial", 12, "bold"),
+        bg=BG,
+        fg=TEXT
+    ).grid(row=1, column=0, padx=10, pady=10, sticky="w")
+
+    quantity_entry = tk.Entry(
+        form,
+        font=("Arial", 12),
+        width=30
+    )
+    quantity_entry.insert(0, "1000 kg")
+    quantity_entry.grid(row=1, column=1, padx=10, pady=10)
+
+    result_frame = tk.Frame(
+        window,
+        bg=CARD,
+        highlightbackground=BORDER,
+        highlightthickness=1
+    )
+    result_frame.pack(fill="x", padx=35, pady=10)
+
+    result_label = tk.Label(
+        result_frame,
+        text="Enter a Batch ID and new quantity.",
+        font=("Arial", 11),
+        bg=CARD,
+        fg=MUTED,
+        justify="left",
+        wraplength=550
+    )
+    result_label.pack(padx=15, pady=15)
+
+    def alter_data():
+
+        batch_id = batch_entry.get().strip()
+        new_quantity = quantity_entry.get().strip()
+
+        if not batch_id:
+            result_label.config(
+                text="⚠ Please enter Batch ID.",
+                fg=RED
+            )
+            return
+
+        if not new_quantity:
+            result_label.config(
+                text="⚠ Please enter new quantity.",
+                fg=RED
+            )
+            return
+
+        batch = honey_chain.find_batch(batch_id)
+
+        if not batch:
+            result_label.config(
+                text=f"❌ Batch '{batch_id}' not found.",
+                fg=RED
+            )
+            return
+
+        connection = sqlite3.connect(DATABASE)
+        cursor = connection.cursor()
+
+        cursor.execute(
+            "SELECT quantity FROM batches WHERE batch_id = ?",
+            (batch_id,)
+        )
+
+        row = cursor.fetchone()
+        connection.close()
+
+        if row is None:
+            result_label.config(
+                text=f"❌ Batch '{batch_id}' not found.",
+                fg=RED
+            )
+            return
+
+        old_quantity = row[0]
+
+        connection = sqlite3.connect(DATABASE)
+        cursor = connection.cursor()
+
+        cursor.execute(
+            """
+            UPDATE batches
+            SET quantity = ?
+            WHERE batch_id = ?
+            """,
+            (new_quantity, batch_id)
+        )
+
+        connection.commit()
+        connection.close()
+
+        result_label.config(
+            text=(
+                "⚠ DEMO DATA ALTERED\n\n"
+                f"Batch ID: {batch_id}\n"
+                f"Quantity changed: {old_quantity} → {new_quantity}\n\n"
+                "The blockchain record was not changed.\n"
+                "Now use VERIFY BLOCKCHAIN to detect the tampering."
+            ),
+            fg=RED
+        )
+
+    tk.Button(
+        window,
+        text="🔧 ALTER DATA",
+        command=alter_data,
+        width=20,
+        height=2,
+        bg=RED,
+        fg="white",
+        font=("Arial", 11, "bold"),
+        relief="flat",
+        cursor="hand2"
+    ).pack(pady=15)
+
+# ============================================================
 # MAIN DASHBOARD
-# =========================================================
+# ============================================================
 
 root = tk.Tk()
 
-root.title("Honey Chain - Digital Honey Traceability")
-root.geometry("1000x700")
-root.configure(bg=BG)
-root.resizable(False, False)
+root.title(
+    "Honey Chain - Digital Honey Traceability"
+)
+
+root.geometry(
+    "1000x700"
+)
+
+root.minsize(
+    900,
+    650
+)
+
+root.configure(
+    bg=BG
+)
 
 
-# ---------------- HEADER ----------------
+# ============================================================
+# HEADER
+# ============================================================
 
 header = tk.Frame(
     root,
     bg=DARK,
-    height=145
+    height=115
 )
 
 header.pack(
@@ -897,30 +1375,36 @@ header.pack_propagate(False)
 
 tk.Label(
     header,
-    text="🍯  HONEY CHAIN",
-    font=("Segoe UI", 30, "bold"),
+    text="🍯 HONEY CHAIN",
+    font=("Segoe UI", 25, "bold"),
     bg=DARK,
-    fg="#FFD54F"
-).pack(pady=(25, 3))
+    fg="white"
+).pack(
+    pady=(18, 2)
+)
 
 tk.Label(
     header,
     text="DIGITAL HONEY TRACEABILITY SYSTEM",
-    font=("Segoe UI", 12, "bold"),
+    font=("Segoe UI", 11, "bold"),
     bg=DARK,
-    fg="white"
+    fg="#F5D76E"
 ).pack()
 
 tk.Label(
     header,
     text="From beekeeper to consumer — one verifiable journey",
-    font=("Segoe UI", 10),
+    font=("Segoe UI", 9),
     bg=DARK,
-    fg="#E0E0E0"
-).pack(pady=5)
+    fg="#DDDDDD"
+).pack(
+    pady=(4, 0)
+)
 
 
-# ---------------- MAIN CONTENT ----------------
+# ============================================================
+# MAIN CONTENT
+# ============================================================
 
 content = tk.Frame(
     root,
@@ -930,47 +1414,39 @@ content = tk.Frame(
 content.pack(
     fill="both",
     expand=True,
-    padx=45,
-    pady=30
+    padx=30,
+    pady=25
 )
 
 
 tk.Label(
     content,
     text="TRACEABILITY CONTROL PANEL",
-    font=("Segoe UI", 16, "bold"),
+    font=("Segoe UI", 15, "bold"),
     bg=BG,
     fg=DARK
-).pack()
-
-tk.Label(
-    content,
-    text="Manage and verify every stage of the honey supply chain",
-    font=("Segoe UI", 10),
-    bg=BG,
-    fg=MUTED
 ).pack(
-    pady=(3, 20)
+    pady=(0, 15)
 )
 
 
-# ---------------- BUTTON GRID ----------------
+# ============================================================
+# FOUR MAIN CARDS
+# ============================================================
 
-button_area = tk.Frame(
+cards_frame = tk.Frame(
     content,
     bg=BG
 )
 
-button_area.pack()
+cards_frame.pack()
 
 
-def create_action_card(
+def create_card(
     parent,
-    row,
-    column,
-    icon,
     title,
     description,
+    button_text,
     command
 ):
 
@@ -978,29 +1454,12 @@ def create_action_card(
         parent,
         bg=CARD,
         width=390,
-        height=150,
+        height=125,
         highlightbackground=BORDER,
         highlightthickness=1
     )
 
-    card.grid(
-        row=row,
-        column=column,
-        padx=12,
-        pady=12
-    )
-
-    card.grid_propagate(False)
-
-    tk.Label(
-        card,
-        text=icon,
-        font=("Segoe UI Emoji", 25),
-        bg=CARD
-    ).place(
-        x=20,
-        y=20
-    )
+    card.pack_propagate(False)
 
     tk.Label(
         card,
@@ -1008,9 +1467,8 @@ def create_action_card(
         font=("Segoe UI", 14, "bold"),
         bg=CARD,
         fg=DARK
-    ).place(
-        x=75,
-        y=20
+    ).pack(
+        pady=(12, 2)
     )
 
     tk.Label(
@@ -1018,16 +1476,12 @@ def create_action_card(
         text=description,
         font=("Segoe UI", 9),
         bg=CARD,
-        fg=MUTED,
-        justify="left"
-    ).place(
-        x=75,
-        y=50
-    )
+        fg=MUTED
+    ).pack()
 
-    button = tk.Button(
+    tk.Button(
         card,
-        text="OPEN",
+        text=button_text,
         command=command,
         font=("Segoe UI", 9, "bold"),
         bg=HONEY,
@@ -1036,144 +1490,195 @@ def create_action_card(
         activeforeground="white",
         relief="flat",
         cursor="hand2",
-        width=12
+        width=18
+    ).pack(
+        pady=8
     )
 
-    button.place(
-        x=75,
-        y=100
-    )
+    return card
 
 
-create_action_card(
-    button_area,
-    0,
-    0,
-    "＋",
-    "Register Batch",
-    "Create a new honey batch\nand record its origin.",
+# Register
+
+card1 = create_card(
+    cards_frame,
+    "🐝 Register Batch",
+    "Create a new honey batch",
+    "REGISTER BATCH",
     register_batch_window
 )
 
-create_action_card(
-    button_area,
-    0,
-    1,
-    "↻",
-    "Update Batch",
-    "Move the batch through\nits supply-chain stages.",
+card1.grid(
+    row=0,
+    column=0,
+    padx=10,
+    pady=8
+)
+
+
+# Update
+
+card2 = create_card(
+    cards_frame,
+    "🔄 Update Batch",
+    "Add the next supply-chain stage",
+    "UPDATE BATCH",
     update_batch_window
 )
 
-create_action_card(
-    button_area,
-    1,
-    0,
-    "✓",
-    "Verify Batch",
-    "Check blockchain integrity\nand detect tampering.",
+card2.grid(
+    row=0,
+    column=1,
+    padx=10,
+    pady=8
+)
+
+
+# Verify
+
+card3 = create_card(
+    cards_frame,
+    "✓ Verify Batch",
+    "Check authenticity and history",
+    "VERIFY BATCH",
     verify_batch_window
 )
 
-create_action_card(
-    button_area,
-    1,
-    1,
-    "⌖",
-    "Track Batch",
-    "View the complete honey\njourney from origin onward.",
+card3.grid(
+    row=1,
+    column=0,
+    padx=10,
+    pady=8
+)
+
+
+# Track
+
+card4 = create_card(
+    cards_frame,
+    "📦 Track Batch",
+    "View the complete journey",
+    "TRACK BATCH",
     track_batch_window
 )
 
+card4.grid(
+    row=1,
+    column=1,
+    padx=10,
+    pady=8
+)
 
-# ---------------- SUPPLY CHAIN FLOW ----------------
+
+# ============================================================
+# SUPPLY CHAIN FLOW
+# ============================================================
 
 flow_frame = tk.Frame(
     content,
-    bg=BG
+    bg=HONEY_LIGHT,
+    highlightbackground=BORDER,
+    highlightthickness=1
 )
 
 flow_frame.pack(
-    pady=(25, 0)
+    fill="x",
+    pady=(20, 0),
+    ipady=10
 )
 
 tk.Label(
     flow_frame,
     text="SUPPLY CHAIN",
     font=("Segoe UI", 10, "bold"),
-    bg=BG,
-    fg=MUTED
+    bg=HONEY_LIGHT,
+    fg=DARK
 ).pack(
-    pady=(0, 8)
+    pady=(3, 5)
 )
 
-flow = tk.Frame(
+tk.Label(
     flow_frame,
+    text="🐝 Harvest   →   Extraction   →   Processing   →   Packaging   →   Dispatch",
+    font=("Segoe UI", 11, "bold"),
+    bg=HONEY_LIGHT,
+    fg=DARK
+).pack()
+
+
+# ============================================================
+# BOTTOM TECHNICAL BUTTONS
+# ============================================================
+
+technical_buttons = tk.Frame(
+    content,
     bg=BG
 )
 
-flow.pack()
-
-stages = [
-    "🐝 Harvest",
-    "Extraction",
-    "Processing",
-    "Packaging",
-    "Dispatch"
-]
-
-for i, stage in enumerate(stages):
-
-    tk.Label(
-        flow,
-        text=stage,
-        font=("Segoe UI", 9, "bold"),
-        bg=HONEY_LIGHT,
-        fg=DARK,
-        padx=12,
-        pady=6
-    ).pack(
-        side="left",
-        padx=3
-    )
-
-    if i < len(stages) - 1:
-
-        tk.Label(
-            flow,
-            text="→",
-            font=("Segoe UI", 12, "bold"),
-            bg=BG,
-            fg=HONEY
-        ).pack(
-            side="left"
-        )
-
-
-# ---------------- FOOTER ----------------
-
-footer = tk.Frame(
-    root,
-    bg=DARK,
-    height=35
+technical_buttons.pack(
+    pady=(12, 0)
 )
 
-footer.pack(
-    side="bottom",
-    fill="x"
+
+# Verify Blockchain
+
+tk.Button(
+    technical_buttons,
+    text="🔗 VERIFY BLOCKCHAIN",
+    command=verify_blockchain_window,
+    font=("Segoe UI", 9, "bold"),
+    bg=HONEY,
+    fg="white",
+    activebackground="#B57C00",
+    activeforeground="white",
+    relief="flat",
+    cursor="hand2",
+    width=22,
+    height=1
+).pack(
+    side="left",
+    padx=5
 )
 
-footer.pack_propagate(False)
+
+# Alter Blockchain
+
+tk.Button(
+    technical_buttons,
+    text="🔧 ALTER BLOCKCHAIN",
+    command=alter_blockchain_window,
+    font=("Segoe UI", 9, "bold"),
+    bg=RED,
+    fg="white",
+    activebackground="#8E0000",
+    activeforeground="white",
+    relief="flat",
+    cursor="hand2",
+    width=22,
+    height=1
+).pack(
+    side="left",
+    padx=5
+)
+
+
+# ============================================================
+# FOOTER
+# ============================================================
 
 tk.Label(
-    footer,
-    text="Blockchain-backed provenance  •  SQLite database  •  QR-enabled traceability",
-    font=("Segoe UI", 9),
-    bg=DARK,
-    fg="#E0E0E0"
+    content,
+    text="Blockchain-backed provenance • SQLite database • QR-enabled traceability",
+    font=("Segoe UI", 8),
+    bg=BG,
+    fg=MUTED
 ).pack(
-    pady=8
+    pady=(10, 0)
 )
 
+
+# ============================================================
+# START
+# ============================================================
 
 root.mainloop()
